@@ -8,12 +8,6 @@ code is written by AI, the bottleneck shifts from writing it to understanding
 what the system actually does; softmap makes that understanding a shared,
 regenerable artifact instead of one developer's mental model.
 
-<!-- TODO(screenshot): docs/img/hero-login-flow.png
-     Flow: http:POST:/auth/login from testdata/toyshop (chi login handler).
-     Mode: Business. Zoom: whole flow visible — the "checks credentials"
-     decision, password verification, token issue, the red 401 exit and the
-     green "responds HTTP 200" terminal must all be in frame. This is the
-     single most convincing shot: a non-developer can read it top to bottom. -->
 ![Login flow map](docs/img/hero-login-flow.png)
 
 The core mechanism is aggressive, honest noise reduction: Gitea's
@@ -82,19 +76,12 @@ terminal ("✓ responds HTTP 200"). Mechanical `if err != nil` propagation
 stays off the map as a "may fail" badge, so decisions that remain are the
 ones that mean something.
 
-<!-- TODO(screenshot): docs/img/decisions-outcomes.png
-     Flow: http:POST:/orders (toyshop CreateOrder), Business mode, zoomed to
-     the decision chain: a "?" decision card, its red ✗ exit sticker, and the
-     pass path continuing down. -->
 ![Decisions and outcomes](docs/img/decisions-outcomes.png)
 
 **Effects on nodes.** Steps are tagged with what they touch: SQL with the
 query text, Kafka topics (publish and consume), Redis, outgoing HTTP and gRPC
 with the target service, password hashing and JWT issuing, object storage.
 
-<!-- TODO(screenshot): docs/img/effects-panel.png
-     Flow: http:POST:/orders (toyshop), detail panel open on the step with
-     the INSERT INTO orders effect + the kafka publish visible on the map. -->
 ![Effects](docs/img/effects-panel.png)
 
 **Business and Tech modes.** The same map, two audiences. Business mode:
@@ -102,9 +89,6 @@ humanized step names, effect phrases ("writes database", "publishes event
 orders.created"), outcome-first decisions — readable by an analyst without an
 IDE. Tech mode: full identifiers, query texts, return types, positions.
 
-<!-- TODO(screenshot): docs/img/modes-business-tech.png
-     Same toyshop login flow, two crops side by side (or a short GIF
-     docs/img/mode-toggle.gif toggling the switch). -->
 ![Business and Tech modes](docs/img/modes-business-tech.png)
 
 **Entity shelf.** With `--all`, softmap derives the nouns your flows touch —
@@ -113,12 +97,6 @@ opens on an entity home screen ("order — 7 flows: 1 create · 5 read ·
 2 publish"), click-through grouped by access kind. Flows with no signal land
 on an honest "Other" shelf; an entity is never guessed.
 
-<!-- TODO(screenshot): docs/img/entity-shelf.png
-     Toyshop --all --html map, Business mode home screen showing the entity
-     cards (order, product, audit, report + Other). Note: the fixture renames
-     order to "Заказ •" via .softmap.yaml — that's a feature demo (override
-     with the • marker), but rename it in the fixture first if you want an
-     all-English shot. -->
 ![Entity shelf](docs/img/entity-shelf.png)
 
 **Tunable labels.** A `.softmap.yaml` next to the analyzed repo's `go.mod`

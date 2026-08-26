@@ -22,6 +22,18 @@ var skipDirs = map[string]bool{
 	".claude": true,
 }
 
+// imageExts are checked by path only. Their compressed byte streams can
+// collide with short text patterns by chance, so content matching on them
+// would produce spurious failures.
+var imageExts = map[string]bool{
+	".png":  true,
+	".jpg":  true,
+	".jpeg": true,
+	".gif":  true,
+	".webp": true,
+	".ico":  true,
+}
+
 // TestForbiddenTerms walks the whole repository and fails if any file's
 // content or path matches an entry from forbidden.txt. The list file itself
 // is excluded (it defines the entries).
@@ -51,6 +63,9 @@ func TestForbiddenTerms(t *testing.T) {
 			if re.MatchString(strings.ToLower(rel)) {
 				t.Errorf("%s: file path matches forbidden entry %q", rel, re)
 			}
+		}
+		if imageExts[strings.ToLower(filepath.Ext(path))] {
+			return nil
 		}
 		data, err := os.ReadFile(path)
 		if err != nil {
