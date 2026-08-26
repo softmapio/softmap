@@ -194,7 +194,7 @@ are the most useful thing you can send.
   [open an issue](https://github.com/softmapio/softmap/issues/new/choose) —
   the templates ask for the stats lines, a `--debug-tree` excerpt, and
   "what did you expect to see, what did you get".
-- DM: <!-- TODO: add X / Telegram handle --> `@your-handle`
+- Email: [hello@softmap.io](mailto:hello@softmap.io)
 
 ## Development
 
