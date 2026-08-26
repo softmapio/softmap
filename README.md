@@ -17,7 +17,8 @@ every dropped node accounted for in `--debug-tree`.
 
 ## Quickstart
 
-Requires Go 1.24+.
+Requires Go 1.21+ — `go install` automatically fetches the newer toolchain
+softmap builds with.
 
 ```sh
 go install github.com/softmapio/softmap/cmd/softmap@latest
@@ -146,7 +147,11 @@ softmap builds on the Go toolchain's own analysis stack: `go/packages` +
   (like Gitea) need `--entrypoint func:<pkg>.<Name>` per flow — and `--all`
   finds nothing there, since it maps only discovered entrypoints.
 - **Your repo must compile.** Analysis loads and type-checks the target;
-  broken builds or unreachable private modules fail the scan.
+  broken builds or unreachable private modules fail the scan. The softmap
+  binary itself must be built with a Go toolchain at least as new as the
+  target's `go` directive — `go install` picks one automatically, and a scan
+  that fails with "requires newer Go version" tells you the exact reinstall
+  command.
 - **Dynamic dispatch is approximated.** VTA resolves most interface calls;
   reflection and hand-built function tables show up as unresolved rather
   than guessed. On very large repos VTA can hit its time budget

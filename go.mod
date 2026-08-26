@@ -1,8 +1,9 @@
 module github.com/softmapio/softmap
 
-go 1.24.3
-
-toolchain go1.25.0
+// Track the newest Go release: the analyzer can only type-check language
+// versions up to the toolchain it was built with, and `go install` selects
+// its toolchain from this directive.
+go 1.25.0
 
 require (
 	golang.org/x/tools v0.41.0

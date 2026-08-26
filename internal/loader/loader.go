@@ -10,6 +10,8 @@ import (
 	"go/printer"
 	"go/token"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -118,7 +120,11 @@ func Load(dir string) (*Program, error) {
 		}
 	}
 	if broken == len(pkgs) && broken > 0 {
-		return nil, fmt.Errorf("all %d packages failed to load; first error: %s", broken, p.Warnings[0])
+		loadErr := fmt.Errorf("all %d packages failed to load; first error: %s", broken, p.Warnings[0])
+		if hint := newerGoHint(strings.Join(p.Warnings, "\n")); hint != "" {
+			loadErr = fmt.Errorf("%s\n%s", loadErr, hint)
+		}
+		return nil, loadErr
 	}
 	if broken > 0 {
 		// Say what the errors cost, not just that they exist: ill-typed
@@ -126,6 +132,9 @@ func Load(dir string) (*Program, error) {
 		p.Warnings = append(p.Warnings, fmt.Sprintf(
 			"%d of %d packages failed to type-check: their functions AND those of packages importing them are invisible to analysis (entrypoints there cannot be discovered) — fix the compile errors above and rescan",
 			broken, len(pkgs)))
+		if hint := newerGoHint(strings.Join(p.Warnings, "\n")); hint != "" {
+			p.Warnings = append(p.Warnings, hint)
+		}
 	}
 	if p.Module == "" {
 		return nil, fmt.Errorf("%s is not inside a Go module (no module information loaded)", abs)
@@ -337,4 +346,22 @@ func (p *Program) Position(pos token.Pos) string {
 		name = filepath.ToSlash(rel)
 	}
 	return fmt.Sprintf("%s:%d", name, position.Line)
+}
+
+// newerGoVersion matches the go/types complaint emitted when a package's go
+// directive is newer than the toolchain this binary was built with.
+var newerGoVersion = regexp.MustCompile(`requires newer Go version go(\d+)\.(\d+)`)
+
+// newerGoHint turns that complaint into an actionable fix. The analyzer can
+// only type-check language versions up to its own build toolchain, so the
+// remedy is always to rebuild the binary, never to change the target repo.
+func newerGoHint(msg string) string {
+	m := newerGoVersion.FindStringSubmatch(msg)
+	if m == nil {
+		return ""
+	}
+	return fmt.Sprintf(
+		"this softmap binary was built with %s and cannot type-check code that requires go%s.%s — rebuild it with a newer toolchain:\n"+
+			"  GOTOOLCHAIN=go%s.%s.0 go install github.com/softmapio/softmap/cmd/softmap@latest",
+		runtime.Version(), m[1], m[2], m[1], m[2])
 }
