@@ -1,0 +1,200 @@
+{
+  "schema_version": "2",
+  "module": "example.com/toyshop",
+  "flows": [
+    {
+      "id": "grpc:Orders/GetOrder",
+      "file": "grpc-Orders-GetOrder.json",
+      "title": "Get order",
+      "method": "GetOrder",
+      "path": "Orders/GetOrder"
+    },
+    {
+      "id": "http:ANY:/healthz",
+      "file": "http-ANY--healthz.json",
+      "title": "Healthz",
+      "path": "/healthz"
+    },
+    {
+      "id": "http:GET:/orders/:id",
+      "file": "http-GET--orders--id.json",
+      "title": "Get order",
+      "method": "GET",
+      "path": "/orders/:id"
+    },
+    {
+      "id": "http:GET:/products",
+      "file": "http-GET--products.json",
+      "title": "List products",
+      "method": "GET",
+      "path": "/products"
+    },
+    {
+      "id": "http:POST:/auth/login",
+      "file": "http-POST--auth-login.json",
+      "title": "Login",
+      "method": "POST",
+      "path": "/auth/login"
+    },
+    {
+      "id": "http:POST:/orders",
+      "file": "http-POST--orders.json",
+      "title": "Create order",
+      "method": "POST",
+      "path": "/orders"
+    },
+    {
+      "id": "http:POST:/orders/:id/approve",
+      "file": "http-POST--orders--id-approve.json",
+      "title": "Approve order",
+      "method": "POST",
+      "path": "/orders/:id/approve"
+    },
+    {
+      "id": "http:POST:/products",
+      "file": "http-POST--products.json",
+      "title": "Create product",
+      "method": "POST",
+      "path": "/products"
+    },
+    {
+      "id": "http:POST:/reports/:id/callback",
+      "file": "http-POST--reports--id-callback.json",
+      "title": "Report callback",
+      "method": "POST",
+      "path": "/reports/:id/callback"
+    },
+    {
+      "id": "kafka:orders.created:consumer.Run",
+      "file": "kafka-orders.created-consumer.Run.json",
+      "title": "Run consumer",
+      "topic": "orders.created"
+    }
+  ],
+  "entities": [
+    {
+      "key": "audit",
+      "name": "Audit",
+      "tables": [
+        "audit"
+      ],
+      "flows": [
+        {
+          "id": "http:POST:/orders",
+          "title": "Create order",
+          "access": [
+            "creates"
+          ]
+        },
+        {
+          "id": "http:POST:/orders/:id/approve",
+          "title": "Approve order",
+          "access": [
+            "creates"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "order",
+      "name": "Заказ",
+      "name_overridden": true,
+      "tables": [
+        "order_items",
+        "orders"
+      ],
+      "flows": [
+        {
+          "id": "grpc:Orders/GetOrder",
+          "title": "Get order",
+          "access": [
+            "reads"
+          ]
+        },
+        {
+          "id": "http:GET:/orders/:id",
+          "title": "Get order",
+          "access": [
+            "reads"
+          ]
+        },
+        {
+          "id": "http:POST:/auth/login",
+          "title": "Login",
+          "access": [
+            "reads"
+          ]
+        },
+        {
+          "id": "http:POST:/orders",
+          "title": "Create order",
+          "access": [
+            "creates",
+            "publishes orders.created"
+          ]
+        },
+        {
+          "id": "http:POST:/orders/:id/approve",
+          "title": "Approve order",
+          "access": [
+            "reads",
+            "publishes orders.created"
+          ]
+        },
+        {
+          "id": "http:POST:/reports/:id/callback",
+          "title": "Report callback",
+          "access": [
+            "reads"
+          ]
+        },
+        {
+          "id": "kafka:orders.created:consumer.Run",
+          "title": "Run consumer",
+          "access": [
+            "consumes orders.created"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "product",
+      "name": "Product",
+      "tables": [
+        "products"
+      ],
+      "flows": [
+        {
+          "id": "http:GET:/products",
+          "title": "List products",
+          "access": [
+            "reads"
+          ]
+        },
+        {
+          "id": "http:POST:/products",
+          "title": "Create product",
+          "access": [
+            "creates"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "report",
+      "name": "Report",
+      "flows": [
+        {
+          "id": "http:POST:/reports/:id/callback",
+          "title": "Report callback"
+        }
+      ]
+    }
+  ],
+  "other": [
+    {
+      "id": "http:ANY:/healthz",
+      "title": "Healthz"
+    }
+  ]
+}

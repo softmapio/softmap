@@ -1,0 +1,7 @@
+bin/
+out/
+.DS_Store
+*.softmap.json
+.claude/
+softmap-out/
+gitea-map/

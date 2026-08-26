@@ -1,0 +1,399 @@
+{
+  "schema_version": "2",
+  "module": "example.com/toyshop",
+  "entrypoint": {
+    "id": "http:POST:/auth/login",
+    "kind": "http",
+    "method": "POST",
+    "path": "/auth/login",
+    "func": "(*chiapi.Handler).Login",
+    "pos": "chiapi/handler.go:53",
+    "effects": [
+      {
+        "type": "security",
+        "detail": "verifies password",
+        "pos": "chiapi/handler.go:66"
+      },
+      {
+        "type": "security",
+        "detail": "issues token",
+        "pos": "chiapi/handler.go:70"
+      },
+      {
+        "type": "storage",
+        "detail": "PresignedGetObject",
+        "pos": "chiapi/handler.go:75"
+      }
+    ],
+    "success": "HTTP 200",
+    "request": {
+      "type": "chiapi.loginReq",
+      "format": "json",
+      "fields": [
+        {
+          "name": "Identifier",
+          "tag": "identifier",
+          "type": "string",
+          "rules": "required"
+        },
+        {
+          "name": "Password",
+          "tag": "password",
+          "type": "string",
+          "rules": "required, min=8"
+        }
+      ]
+    },
+    "response": {
+      "type": "chiapi.loginResp",
+      "format": "json",
+      "fields": [
+        {
+          "name": "Token",
+          "tag": "token",
+          "type": "string"
+        },
+        {
+          "name": "OrderID",
+          "tag": "order_id",
+          "type": "string"
+        },
+        {
+          "name": "ReceiptURL",
+          "tag": "receipt_url",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "func": "decision:(*chiapi.Handler).Login:chiapi/handler.go:55",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:55",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "err != nil"
+    },
+    {
+      "id": "n2",
+      "func": "exit:\"HTTP 400 (Decode failed)\"",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:57",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 400 (Decode failed)",
+        "pos": "chiapi/handler.go:57"
+      }
+    },
+    {
+      "id": "n3",
+      "func": "(*chiapi.Handler).findOrderByIdentifier",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:89",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "*model.Order, error"
+    },
+    {
+      "id": "n4",
+      "func": "decision:(*chiapi.Handler).Login:chiapi/handler.go:60",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:60",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "err != nil",
+      "uses": [
+        "findOrderByIdentifier"
+      ]
+    },
+    {
+      "id": "n5",
+      "func": "decision:(*chiapi.Handler).findOrderByIdentifier:chiapi/handler.go:90",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:90",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "strings.Contains(identifier, \"@\")",
+      "gate": true,
+      "branch": true
+    },
+    {
+      "id": "n6",
+      "func": "exit:\"HTTP 401 (findOrderByIdentifier failed)\"",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:62",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 401 (findOrderByIdentifier failed)",
+        "pos": "chiapi/handler.go:62"
+      }
+    },
+    {
+      "id": "n7",
+      "func": "decision:(*chiapi.Handler).Login:chiapi/handler.go:66",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:66",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "err != nil"
+    },
+    {
+      "id": "n8",
+      "func": "(*service.Service).GetOrder",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:66",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "*model.Order, error"
+    },
+    {
+      "id": "n9",
+      "func": "(*service.Service).FindByPhone",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:76",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "error_exits": [
+        "\"order not found by phone %s\""
+      ],
+      "label": "Поиск заказа по телефону",
+      "fallible": true,
+      "checks_overflow": 1,
+      "returns": "*model.Order, error"
+    },
+    {
+      "id": "n10",
+      "func": "exit:\"HTTP 401 (CompareHashAndPassword failed)\"",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:68",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 401 (CompareHashAndPassword failed)",
+        "pos": "chiapi/handler.go:68"
+      }
+    },
+    {
+      "id": "n11",
+      "func": "decision:(*chiapi.Handler).Login:chiapi/handler.go:71",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:71",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "collapsed": [
+        "chiapi.toLoginResp"
+      ],
+      "condition": "err != nil"
+    },
+    {
+      "id": "n12",
+      "func": "(*repo.Repo).CachedOrder",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:70",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "redis",
+          "detail": "Get",
+          "pos": "repo/repo.go:71"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "string, error"
+    },
+    {
+      "id": "n13",
+      "func": "(*repo.Repo).FindOrder",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:57",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "sql",
+          "detail": "SELECT id, item, qty FROM orders WHERE id = $1",
+          "pos": "repo/repo.go:59"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "*model.Order, error"
+    },
+    {
+      "id": "n14",
+      "func": "service.normalizedPhone",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:107",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "string"
+    },
+    {
+      "id": "n15",
+      "func": "decision:(*service.Service).FindByPhone:service/service.go:81",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:81",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "norm == \"\"",
+      "uses": [
+        "normalizedPhone"
+      ]
+    },
+    {
+      "id": "n16",
+      "func": "exit:\"HTTP 500 (SignedString failed)\"",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:73",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 500 (SignedString failed)",
+        "pos": "chiapi/handler.go:73"
+      }
+    },
+    {
+      "id": "n17",
+      "func": "exit:\"телефон не распознан: %s\"",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:82",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "телефон не распознан: %s",
+        "pos": "service/service.go:82"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "entrypoint",
+      "to": "n1"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n1",
+      "to": "n3",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n1",
+      "to": "n4",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n3",
+      "to": "n5"
+    },
+    {
+      "from": "n4",
+      "to": "n6",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n4",
+      "to": "n7",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n5",
+      "to": "n8",
+      "kind": "pass",
+      "label": "yes"
+    },
+    {
+      "from": "n5",
+      "to": "n9",
+      "kind": "pass",
+      "label": "no"
+    },
+    {
+      "from": "n7",
+      "to": "n10",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n7",
+      "to": "n11",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n8",
+      "to": "n12"
+    },
+    {
+      "from": "n8",
+      "to": "n13"
+    },
+    {
+      "from": "n9",
+      "to": "n14"
+    },
+    {
+      "from": "n9",
+      "to": "n15"
+    },
+    {
+      "from": "n11",
+      "to": "n16",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n15",
+      "to": "n17",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n15",
+      "to": "n13",
+      "kind": "pass",
+      "label": "false"
+    }
+  ],
+  "stats": {
+    "raw_nodes": 9,
+    "kept_nodes": 17,
+    "dropped_by_rule": {
+      "default:dto-mapper": 1,
+      "default:logging": 1,
+      "default:respond-helper": 1
+    }
+  }
+}

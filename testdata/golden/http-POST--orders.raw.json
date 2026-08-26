@@ -1,0 +1,397 @@
+{
+  "schema_version": "2",
+  "module": "example.com/toyshop",
+  "entrypoint": {
+    "id": "http:POST:/orders",
+    "kind": "http",
+    "method": "POST",
+    "path": "/orders",
+    "func": "(*handlers.Handler).CreateOrder",
+    "pos": "handlers/handler.go:39"
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "func": "(*pkg/log.Logger).Info",
+      "package": "example.com/toyshop/pkg/log",
+      "pos": "pkg/log/log.go:10",
+      "kind": "step",
+      "async": false,
+      "resolution": "static"
+    },
+    {
+      "id": "n2",
+      "func": "(*pkg/metrics.Counter).Inc",
+      "package": "example.com/toyshop/pkg/metrics",
+      "pos": "pkg/metrics/metrics.go:7",
+      "kind": "step",
+      "async": false,
+      "resolution": "static"
+    },
+    {
+      "id": "n3",
+      "func": "handlers.validateOrder",
+      "package": "example.com/toyshop/handlers",
+      "pos": "handlers/handler.go:81",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "error_exits": [
+        "\"item is required\"",
+        "\"qty must be positive\""
+      ],
+      "returns": "error"
+    },
+    {
+      "id": "n4",
+      "func": "(*service.Service).CreateOrder",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:35",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "error_exits": [
+        "ErrTooManyItems"
+      ],
+      "returns": "*model.Order, error"
+    },
+    {
+      "id": "n5",
+      "func": "(*service.Service).tracedLogger",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:129",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "*log.Logger"
+    },
+    {
+      "id": "n6",
+      "func": "(*pkg/log.Logger).Debug",
+      "package": "example.com/toyshop/pkg/log",
+      "pos": "pkg/log/log.go:9",
+      "kind": "step",
+      "async": false,
+      "resolution": "static"
+    },
+    {
+      "id": "n7",
+      "func": "service.newID",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:111",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "string"
+    },
+    {
+      "id": "n8",
+      "func": "(*repo.Repo).Save",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/wrapper.go:11",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "error"
+    },
+    {
+      "id": "n9",
+      "func": "service.wrapErr",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:134",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "error"
+    },
+    {
+      "id": "n10",
+      "func": "(*repo.Repo).CacheOrder",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:66",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "redis",
+          "detail": "Set",
+          "pos": "repo/repo.go:67"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "error"
+    },
+    {
+      "id": "n11",
+      "func": "(*pkg/log.Logger).Warn",
+      "package": "example.com/toyshop/pkg/log",
+      "pos": "pkg/log/log.go:11",
+      "kind": "step",
+      "async": false,
+      "resolution": "static"
+    },
+    {
+      "id": "n12",
+      "func": "(*events.Producer).OrderCreated",
+      "package": "example.com/toyshop/events",
+      "pos": "events/producer.go:24",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "kafka",
+          "detail": "WriteMessages",
+          "topic": "orders.created",
+          "pos": "events/producer.go:25"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "error"
+    },
+    {
+      "id": "n13",
+      "func": "(*service.Service).notifyAll",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:92",
+      "kind": "step",
+      "async": false,
+      "resolution": "static"
+    },
+    {
+      "id": "n14",
+      "func": "(*service.Service).audit",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:100",
+      "kind": "step",
+      "async": true,
+      "resolution": "static"
+    },
+    {
+      "id": "n15",
+      "func": "(*service.Service).CreateOrder$1",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:57",
+      "kind": "step",
+      "async": true,
+      "resolution": "static"
+    },
+    {
+      "id": "n16",
+      "func": "dyn.Publish",
+      "package": "example.com/toyshop/dyn",
+      "pos": "dyn/dyn.go:8",
+      "kind": "step",
+      "async": false,
+      "resolution": "static"
+    },
+    {
+      "id": "n17",
+      "func": "(*repo.Repo).save",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:24",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "sql",
+          "detail": "INSERT INTO orders (id, item, qty) VALUES ($1, $2, $3)",
+          "pos": "repo/repo.go:25"
+        },
+        {
+          "type": "sql",
+          "detail": "INSERT INTO order_items (order_id, item, qty) VALUES ($1, $2, $3)",
+          "pos": "repo/repo.go:31"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "error"
+    },
+    {
+      "id": "n18",
+      "func": "(*service.EmailNotifier).Notify",
+      "package": "example.com/toyshop/service",
+      "pos": "service/notifier.go:20",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "http",
+          "detail": "Post http://mailer.internal/send",
+          "pos": "service/notifier.go:21"
+        }
+      ],
+      "async": false,
+      "resolution": "static-multi",
+      "returns": "error"
+    },
+    {
+      "id": "n19",
+      "func": "(*service.SlackNotifier).Notify",
+      "package": "example.com/toyshop/service",
+      "pos": "service/notifier.go:30",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "http",
+          "detail": "POST http://slack.internal/hook",
+          "pos": "service/notifier.go:31"
+        },
+        {
+          "type": "http",
+          "detail": "Do",
+          "pos": "service/notifier.go:35"
+        }
+      ],
+      "async": false,
+      "resolution": "static-multi",
+      "returns": "error"
+    },
+    {
+      "id": "n20",
+      "func": "(*pkg/log.Logger).Error",
+      "package": "example.com/toyshop/pkg/log",
+      "pos": "pkg/log/log.go:12",
+      "kind": "step",
+      "async": false,
+      "resolution": "static"
+    },
+    {
+      "id": "n21",
+      "func": "(*repo.Repo).AuditLog",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:74",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "sql",
+          "detail": "INSERT INTO audit (order_id, event) VALUES ($1, $2)",
+          "pos": "repo/repo.go:75"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "error"
+    },
+    {
+      "id": "n22",
+      "func": "dynamic:dyn.Hook",
+      "package": "",
+      "pos": "dyn/dyn.go:10",
+      "kind": "terminal",
+      "async": false,
+      "resolution": "dynamic"
+    }
+  ],
+  "edges": [
+    {
+      "from": "entrypoint",
+      "to": "n1"
+    },
+    {
+      "from": "entrypoint",
+      "to": "n2"
+    },
+    {
+      "from": "entrypoint",
+      "to": "n3"
+    },
+    {
+      "from": "entrypoint",
+      "to": "n4"
+    },
+    {
+      "from": "n4",
+      "to": "n5"
+    },
+    {
+      "from": "n4",
+      "to": "n6"
+    },
+    {
+      "from": "n4",
+      "to": "n2"
+    },
+    {
+      "from": "n4",
+      "to": "n7"
+    },
+    {
+      "from": "n4",
+      "to": "n8"
+    },
+    {
+      "from": "n4",
+      "to": "n9"
+    },
+    {
+      "from": "n4",
+      "to": "n10"
+    },
+    {
+      "from": "n4",
+      "to": "n11"
+    },
+    {
+      "from": "n4",
+      "to": "n12"
+    },
+    {
+      "from": "n4",
+      "to": "n13"
+    },
+    {
+      "from": "n4",
+      "to": "n14",
+      "async": true
+    },
+    {
+      "from": "n4",
+      "to": "n15",
+      "async": true
+    },
+    {
+      "from": "n4",
+      "to": "n16"
+    },
+    {
+      "from": "n8",
+      "to": "n17"
+    },
+    {
+      "from": "n13",
+      "to": "n18"
+    },
+    {
+      "from": "n13",
+      "to": "n19"
+    },
+    {
+      "from": "n13",
+      "to": "n20"
+    },
+    {
+      "from": "n14",
+      "to": "n21"
+    },
+    {
+      "from": "n14",
+      "to": "n20"
+    },
+    {
+      "from": "n15",
+      "to": "n21"
+    },
+    {
+      "from": "n15",
+      "to": "n20"
+    },
+    {
+      "from": "n16",
+      "to": "n22"
+    }
+  ],
+  "stats": {
+    "raw_nodes": 22,
+    "kept_nodes": 22,
+    "dropped_by_rule": {}
+  }
+}

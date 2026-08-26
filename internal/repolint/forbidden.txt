@@ -1,0 +1,16 @@
+# Project-specific forbidden strings. One entry per line: a base64-encoded,
+# case-insensitive regular expression (Go syntax). The repo lint test fails
+# if any file in the repository matches one. Entries are encoded so this
+# list never itself contains a string it forbids.
+Ym5wbA==
+YmNj
+cHJlYXBw
+XGJlcG9z
+Y3JlYXRldjNhdXRo
+ZnJvbnRhZ3JlZW1lbnQ=
+bXlvcg==
+YWxmYS1iYW5r
+YWlib2xvcmF6YmVrb3Y=
+XGJpaW5cYg==
+XGJtZXJjaGFudFxi
+dWNoZXQ=

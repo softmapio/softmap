@@ -1,0 +1,97 @@
+{
+  "schema_version": "2",
+  "module": "example.com/toyshop",
+  "entrypoint": {
+    "id": "http:GET:/products",
+    "kind": "http",
+    "method": "GET",
+    "path": "/products",
+    "func": "(*chiapi.Handler).ListProducts",
+    "pos": "chiapi/handler.go:105",
+    "success": "HTTP 200"
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "func": "(*service.Service).ListProducts",
+      "package": "example.com/toyshop/service",
+      "pos": "service/products.go:15",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "[]model.Product, error"
+    },
+    {
+      "id": "n2",
+      "func": "decision:(*chiapi.Handler).ListProducts:chiapi/handler.go:107",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:107",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "err != nil",
+      "uses": [
+        "ListProducts"
+      ]
+    },
+    {
+      "id": "n3",
+      "func": "(*repo.Repo).ListProducts",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:35",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "sql",
+          "detail": "SELECT id, name, price FROM products ORDER BY name",
+          "pos": "repo/repo.go:36"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "fallible": true,
+      "returns": "[]model.Product, error"
+    },
+    {
+      "id": "n4",
+      "func": "exit:\"HTTP 500 (ListProducts failed)\"",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:109",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 500 (ListProducts failed)",
+        "pos": "chiapi/handler.go:109"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "entrypoint",
+      "to": "n1"
+    },
+    {
+      "from": "entrypoint",
+      "to": "n2"
+    },
+    {
+      "from": "n1",
+      "to": "n3"
+    },
+    {
+      "from": "n2",
+      "to": "n4",
+      "kind": "fail",
+      "label": "true"
+    }
+  ],
+  "stats": {
+    "raw_nodes": 3,
+    "kept_nodes": 4,
+    "dropped_by_rule": {
+      "default:respond-helper": 1
+    }
+  }
+}

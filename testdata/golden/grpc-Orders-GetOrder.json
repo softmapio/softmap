@@ -1,0 +1,101 @@
+{
+  "schema_version": "2",
+  "module": "example.com/toyshop",
+  "entrypoint": {
+    "id": "grpc:Orders/GetOrder",
+    "kind": "grpc",
+    "method": "GetOrder",
+    "path": "Orders/GetOrder",
+    "func": "(grpcserver.Server).GetOrder",
+    "pos": "grpcserver/server.go:28",
+    "returns": "*grpcapi.GetOrderResp, error",
+    "request": {
+      "type": "grpcapi.GetOrderReq",
+      "format": "json",
+      "fields": [
+        {
+          "name": "Id",
+          "type": "string"
+        }
+      ]
+    },
+    "response": {
+      "type": "grpcapi.GetOrderResp",
+      "format": "json",
+      "fields": [
+        {
+          "name": "Item",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "func": "(*service.Service).GetOrder",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:66",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "*model.Order, error"
+    },
+    {
+      "id": "n2",
+      "func": "(*repo.Repo).CachedOrder",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:70",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "redis",
+          "detail": "Get",
+          "pos": "repo/repo.go:71"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "string, error"
+    },
+    {
+      "id": "n3",
+      "func": "(*repo.Repo).FindOrder",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:57",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "sql",
+          "detail": "SELECT id, item, qty FROM orders WHERE id = $1",
+          "pos": "repo/repo.go:59"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "*model.Order, error"
+    }
+  ],
+  "edges": [
+    {
+      "from": "entrypoint",
+      "to": "n1"
+    },
+    {
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "from": "n1",
+      "to": "n3"
+    }
+  ],
+  "stats": {
+    "raw_nodes": 5,
+    "kept_nodes": 3,
+    "dropped_by_rule": {
+      "default:logging": 1,
+      "excluded:generated-file": 1
+    }
+  }
+}

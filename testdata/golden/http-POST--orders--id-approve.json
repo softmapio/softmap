@@ -1,0 +1,379 @@
+{
+  "schema_version": "2",
+  "module": "example.com/toyshop",
+  "entrypoint": {
+    "id": "http:POST:/orders/:id/approve",
+    "kind": "http",
+    "method": "POST",
+    "path": "/orders/:id/approve",
+    "func": "(*handlers.Handler).ApproveOrder",
+    "pos": "handlers/handler.go:60"
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "func": "(*service.Service).ApproveOrder",
+      "package": "example.com/toyshop/service",
+      "pos": "service/approve.go:21",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "error"
+    },
+    {
+      "id": "n2",
+      "func": "decision:(*handlers.Handler).ApproveOrder:handlers/handler.go:62",
+      "package": "example.com/toyshop/handlers",
+      "pos": "handlers/handler.go:62",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "err != nil",
+      "uses": [
+        "ApproveOrder"
+      ]
+    },
+    {
+      "id": "n3",
+      "func": "(*service.Service).fetchResellers",
+      "package": "example.com/toyshop/service",
+      "pos": "service/approve.go:64",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "map[string]string"
+    },
+    {
+      "id": "n4",
+      "func": "decision:(*service.Service).ApproveOrder:service/approve.go:25",
+      "package": "example.com/toyshop/service",
+      "pos": "service/approve.go:25",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "len(resellers) == 0",
+      "uses": [
+        "fetchResellers"
+      ]
+    },
+    {
+      "id": "n5",
+      "func": "exit:\"HTTP 403 · account\"",
+      "package": "example.com/toyshop/handlers",
+      "pos": "handlers/handler.go:64",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 403 · account",
+        "pos": "handlers/handler.go:64"
+      }
+    },
+    {
+      "id": "n6",
+      "func": "(*repo.Repo).CachedOrder",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:70",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "redis",
+          "detail": "Get",
+          "pos": "repo/repo.go:71"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "string, error"
+    },
+    {
+      "id": "n7",
+      "func": "exit:ErrNoResellersAttached",
+      "package": "example.com/toyshop/service",
+      "pos": "service/approve.go:27",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "sentinel",
+        "name": "ErrNoResellersAttached",
+        "pos": "service/approve.go:27"
+      }
+    },
+    {
+      "id": "n8",
+      "func": "decision:(*service.Service).ApproveOrder:service/approve.go:29",
+      "package": "example.com/toyshop/service",
+      "pos": "service/approve.go:29",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "resellers[orderID] == \"\"",
+      "uses": [
+        "fetchResellers"
+      ]
+    },
+    {
+      "id": "n9",
+      "func": "exit:\"нет прав на заказ %s\"",
+      "package": "example.com/toyshop/service",
+      "pos": "service/approve.go:30",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "нет прав на заказ %s",
+        "pos": "service/approve.go:30"
+      }
+    },
+    {
+      "id": "n10",
+      "func": "(*repo.Repo).FindOrder",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:57",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "sql",
+          "detail": "SELECT id, item, qty FROM orders WHERE id = $1",
+          "pos": "repo/repo.go:59"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "fallible": true,
+      "returns": "*model.Order, error"
+    },
+    {
+      "id": "n11",
+      "func": "(*repo.Repo).CacheOrder",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:66",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "redis",
+          "detail": "Set",
+          "pos": "repo/repo.go:67"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "fallible": true,
+      "returns": "error"
+    },
+    {
+      "id": "n12",
+      "func": "decision:(*service.Service).ApproveOrder:service/approve.go:40",
+      "package": "example.com/toyshop/service",
+      "pos": "service/approve.go:40",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "err != nil \u0026\u0026 !errors.Is(err, ErrNoResellersAttached)",
+      "uses": [
+        "CachedOrder"
+      ]
+    },
+    {
+      "id": "n13",
+      "func": "exit:ErrApprovalStopped",
+      "package": "example.com/toyshop/service",
+      "pos": "service/approve.go:42",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "sentinel",
+        "name": "ErrApprovalStopped",
+        "pos": "service/approve.go:42"
+      }
+    },
+    {
+      "id": "n14",
+      "func": "decision:(*service.Service).ApproveOrder:service/approve.go:45",
+      "package": "example.com/toyshop/service",
+      "pos": "service/approve.go:45",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "o.Qty \u003e 10",
+      "gate": true
+    },
+    {
+      "id": "n15",
+      "func": "decision:(*service.Service).ApproveOrder:service/approve.go:53",
+      "package": "example.com/toyshop/service",
+      "pos": "service/approve.go:53",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "o.Qty \u003c= 0"
+    },
+    {
+      "id": "n16",
+      "func": "(*repo.Repo).AuditLog",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:74",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "sql",
+          "detail": "INSERT INTO audit (order_id, event) VALUES ($1, $2)",
+          "pos": "repo/repo.go:75"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "error"
+    },
+    {
+      "id": "n17",
+      "func": "exit:\"approve of empty order %s\"",
+      "package": "example.com/toyshop/service",
+      "pos": "service/approve.go:54",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "approve of empty order %s",
+        "pos": "service/approve.go:54"
+      }
+    },
+    {
+      "id": "n18",
+      "func": "(*events.Producer).OrderCreated",
+      "package": "example.com/toyshop/events",
+      "pos": "events/producer.go:24",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "kafka",
+          "detail": "WriteMessages",
+          "topic": "orders.created",
+          "pos": "events/producer.go:25"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "fallible": true,
+      "returns": "error"
+    }
+  ],
+  "edges": [
+    {
+      "from": "entrypoint",
+      "to": "n1"
+    },
+    {
+      "from": "entrypoint",
+      "to": "n2"
+    },
+    {
+      "from": "n1",
+      "to": "n3"
+    },
+    {
+      "from": "n1",
+      "to": "n4"
+    },
+    {
+      "from": "n2",
+      "to": "n5",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n3",
+      "to": "n6"
+    },
+    {
+      "from": "n4",
+      "to": "n7",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n4",
+      "to": "n8",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n8",
+      "to": "n9",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n8",
+      "to": "n10",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n8",
+      "to": "n11",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n8",
+      "to": "n12",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n8",
+      "to": "n6",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n12",
+      "to": "n13",
+      "kind": "fail",
+      "label": "false"
+    },
+    {
+      "from": "n12",
+      "to": "n14",
+      "kind": "pass",
+      "label": "true"
+    },
+    {
+      "from": "n12",
+      "to": "n15",
+      "kind": "pass",
+      "label": "true"
+    },
+    {
+      "from": "n14",
+      "to": "n16",
+      "kind": "pass"
+    },
+    {
+      "from": "n15",
+      "to": "n17",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n15",
+      "to": "n18",
+      "kind": "pass",
+      "label": "false"
+    }
+  ],
+  "stats": {
+    "raw_nodes": 10,
+    "kept_nodes": 18,
+    "dropped_by_rule": {
+      "default:logging": 2,
+      "default:metrics": 1
+    }
+  }
+}

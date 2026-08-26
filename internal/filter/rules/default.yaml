@@ -1,0 +1,86 @@
+# softmap default filter rules.
+#
+# This file is embedded in the binary and applied unless --no-filter is set;
+# print it with `softmap rules --defaults`. A future --rules flag will layer
+# a user file in this same format on top.
+#
+# Semantics:
+#   - Rules apply in order; the first match decides a node's fate.
+#   - action: drop      remove the node (and its exclusively-noise subtree)
+#   - action: collapse  inline the node into its caller, keeping its callees
+#   - match criteria AND together; lists inside a criterion OR.
+#   - pkg patterns: plain globs, plus "std:<glob>" (standard library only)
+#     and "dep:<glob>" (outside the analyzed module, not stdlib).
+#   - heuristic names refer to built-in predicates in internal/filter.
+#
+# Engine-level guarantees rules cannot break: effect nodes (SQL, Redis,
+# HTTP, Kafka) and unresolved dynamic calls are never dropped, and any node
+# on a path to a kept node is retained (keep-protection), so broad drops are
+# safe.
+
+version: 1
+rules:
+  # Context plumbing carries no business meaning.
+  - id: default:context
+    action: drop
+    match: { pkg: "std:context" }
+
+  # Stdlib and third-party internals: boundary calls that matter surface as
+  # effect nodes, which are immune; the rest is implementation detail.
+  - id: default:stdlib
+    action: drop
+    match: { pkg: "std:*" }
+  - id: default:third-party
+    action: drop
+    match: { pkg: "dep:*" }
+
+  # Role-based noise inside the analyzed module.
+  - id: default:logging
+    action: drop
+    match: { heuristic: logger-method }
+  - id: default:logging-packages
+    action: drop
+    match: { heuristic: logger-package }
+  - id: default:logging-factories
+    action: drop
+    match: { heuristic: logger-factory }
+  - id: default:metrics
+    action: drop
+    match: { heuristic: metrics-tracing }
+  - id: default:config
+    action: drop
+    match: { heuristic: config-reader }
+  - id: default:validation
+    action: drop
+    match: { heuristic: validation-helper }
+
+  # Structural noise: inline into the caller instead of dropping.
+  # error-wrapper precedes trivial-wrapper because every error wrapper is
+  # also a trivial wrapper; the more specific rule should take the credit.
+  - id: default:error-wrapper
+    action: collapse
+    match: { heuristic: error-wrapper }
+  - id: default:trivial-wrapper
+    action: collapse
+    match: { heuristic: trivial-wrapper }
+  # ToX/FromX/XFromModel: pure DTO shape-shifting between layers folds into
+  # the caller as "+N mapping".
+  - id: default:dto-mapper
+    action: collapse
+    match: { heuristic: dto-mapper }
+  # RespondWithJSON(w, code, payload): guards already turned its call sites
+  # into exits and the success terminal — the helper is transport.
+  - id: default:respond-helper
+    action: drop
+    match: { heuristic: respond-helper }
+  # go func(){ s.DoWork() } — the goroutine closure is plumbing; the spliced
+  # edge keeps the async marking, so the callee shows as the async step.
+  - id: default:inline-closure
+    action: collapse
+    match: { heuristic: inline-closure }
+  - id: default:trivial-constructor
+    action: collapse
+    match: { heuristic: trivial-constructor }
+  - id: default:getter
+    action: collapse
+    match: { heuristic: getter }

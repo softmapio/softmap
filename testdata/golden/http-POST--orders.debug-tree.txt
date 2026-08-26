@@ -1,0 +1,41 @@
+(*handlers.Handler).CreateOrder
+  (*pkg/log.Logger).Info  [dropped: default:logging]
+  (*pkg/metrics.Counter).Inc  [dropped: default:metrics]
+  handlers.validateOrder
+  ? err != nil  [uses: validateOrder]
+    ✗ exit: "HTTP 422 (validateOrder failed)"
+    (*service.Service).CreateOrder
+      (*service.Service).tracedLogger  [dropped: default:logging-factories]
+      (*pkg/log.Logger).Debug  [dropped: default:logging]
+      (*pkg/metrics.Counter).Inc  [dropped: default:metrics]
+      ? req.Qty > 100
+        ✗ exit: ErrTooManyItems
+        service.newID  [collapsed: default:trivial-wrapper]
+        (*repo.Repo).Save  [collapsed: default:trivial-wrapper]
+          (*repo.Repo).save
+            · sql: INSERT INTO orders (id, item, qty) VALUES ($1, $2, $3)
+            · sql: INSERT INTO order_items (order_id, item, qty) VALUES ($1, $2, $3)
+        service.wrapErr  [collapsed: default:error-wrapper]
+        (*repo.Repo).CacheOrder
+          · redis: Set
+        (*pkg/log.Logger).Warn  [dropped: default:logging]
+        (*events.Producer).OrderCreated
+          · kafka: topic=orders.created
+        (*service.Service).notifyAll
+          (*service.EmailNotifier).Notify  [static-multi]
+            · http: Post http://mailer.internal/send
+          (*service.SlackNotifier).Notify  [static-multi]
+            · http: POST http://slack.internal/hook
+            · http: Do
+          (*pkg/log.Logger).Error  [dropped: default:logging]
+        (*service.Service).audit  [async]
+          (*repo.Repo).AuditLog
+            · sql: INSERT INTO audit (order_id, event) VALUES ($1, $2)
+          (*pkg/log.Logger).Error  [dropped: default:logging]
+        (*service.Service).CreateOrder$1  [async] [collapsed: default:inline-closure]
+          (*repo.Repo).AuditLog
+            · sql: INSERT INTO audit (order_id, event) VALUES ($1, $2)
+          (*pkg/log.Logger).Error  [dropped: default:logging]
+        dyn.Publish
+          ? Hook != nil  [gate]
+            dynamic:dyn.Hook  [dynamic]

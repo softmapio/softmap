@@ -1,0 +1,210 @@
+{
+  "schema_version": "2",
+  "module": "example.com/toyshop",
+  "entrypoint": {
+    "id": "http:POST:/products",
+    "kind": "http",
+    "method": "POST",
+    "path": "/products",
+    "func": "(*chiapi.Handler).CreateProduct",
+    "pos": "chiapi/handler.go:114",
+    "success": "HTTP 201 Created",
+    "request": {
+      "type": "chiapi.createProductReq",
+      "format": "json",
+      "fields": [
+        {
+          "name": "Name",
+          "tag": "name",
+          "type": "string",
+          "rules": "required"
+        },
+        {
+          "name": "Price",
+          "tag": "price",
+          "type": "int",
+          "rules": "required, min=1"
+        }
+      ]
+    },
+    "response": {
+      "type": "model.Product",
+      "format": "json",
+      "fields": [
+        {
+          "name": "ID",
+          "type": "string"
+        },
+        {
+          "name": "Name",
+          "type": "string"
+        },
+        {
+          "name": "Price",
+          "type": "int"
+        }
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "func": "decision:(*chiapi.Handler).CreateProduct:chiapi/handler.go:116",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:116",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "err != nil"
+    },
+    {
+      "id": "n2",
+      "func": "exit:\"HTTP 400 (Decode failed)\"",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:118",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 400 (Decode failed)",
+        "pos": "chiapi/handler.go:118"
+      }
+    },
+    {
+      "id": "n3",
+      "func": "(*service.Service).CreateProduct",
+      "package": "example.com/toyshop/service",
+      "pos": "service/products.go:19",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "*model.Product, error"
+    },
+    {
+      "id": "n4",
+      "func": "decision:(*chiapi.Handler).CreateProduct:chiapi/handler.go:121",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:121",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "err != nil",
+      "uses": [
+        "CreateProduct"
+      ]
+    },
+    {
+      "id": "n5",
+      "func": "decision:(*service.Service).CreateProduct:service/products.go:20",
+      "package": "example.com/toyshop/service",
+      "pos": "service/products.go:20",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "collapsed": [
+        "service.wrapErr"
+      ],
+      "condition": "price \u003c= 0"
+    },
+    {
+      "id": "n6",
+      "func": "exit:\"HTTP 422 (CreateProduct failed)\"",
+      "package": "example.com/toyshop/chiapi",
+      "pos": "chiapi/handler.go:123",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 422 (CreateProduct failed)",
+        "pos": "chiapi/handler.go:123"
+      }
+    },
+    {
+      "id": "n7",
+      "func": "exit:ErrPriceInvalid",
+      "package": "example.com/toyshop/service",
+      "pos": "service/products.go:21",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "sentinel",
+        "name": "ErrPriceInvalid",
+        "pos": "service/products.go:21"
+      }
+    },
+    {
+      "id": "n8",
+      "func": "(*repo.Repo).CreateProduct",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:52",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "sql",
+          "detail": "INSERT INTO products (id, name, price) VALUES ($1, $2, $3)",
+          "pos": "repo/repo.go:53"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "error"
+    }
+  ],
+  "edges": [
+    {
+      "from": "entrypoint",
+      "to": "n1"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n1",
+      "to": "n3",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n1",
+      "to": "n4",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n3",
+      "to": "n5"
+    },
+    {
+      "from": "n4",
+      "to": "n6",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n5",
+      "to": "n7",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n5",
+      "to": "n8",
+      "kind": "pass",
+      "label": "false"
+    }
+  ],
+  "stats": {
+    "raw_nodes": 4,
+    "kept_nodes": 8,
+    "dropped_by_rule": {
+      "default:error-wrapper": 1,
+      "default:respond-helper": 1
+    }
+  }
+}

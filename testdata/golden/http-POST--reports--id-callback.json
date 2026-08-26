@@ -1,0 +1,253 @@
+{
+  "schema_version": "2",
+  "module": "example.com/toyshop",
+  "entrypoint": {
+    "id": "http:POST:/reports/:id/callback",
+    "kind": "http",
+    "method": "POST",
+    "path": "/reports/:id/callback",
+    "func": "(*echoapi.Handler).ReportCallback",
+    "pos": "echoapi/handler.go:43",
+    "returns": "error",
+    "success": "HTTP 200",
+    "request": {
+      "type": "echoapi.callbackReq",
+      "format": "json",
+      "fields": [
+        {
+          "name": "ReportID",
+          "tag": "report_id",
+          "type": "string",
+          "rules": "required, length(4, 64), digit"
+        },
+        {
+          "name": "Status",
+          "tag": "status",
+          "type": "string",
+          "rules": "required, oneof=NEW DONE"
+        },
+        {
+          "name": "Amount",
+          "tag": "amount_cents",
+          "type": "int64"
+        }
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "func": "decision:(*echoapi.Handler).ReportCallback:echoapi/handler.go:45",
+      "package": "example.com/toyshop/echoapi",
+      "pos": "echoapi/handler.go:45",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "id == \"\""
+    },
+    {
+      "id": "n2",
+      "func": "exit:\"HTTP 400 · id is required\"",
+      "package": "example.com/toyshop/echoapi",
+      "pos": "echoapi/handler.go:46",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 400 · id is required",
+        "pos": "echoapi/handler.go:46"
+      }
+    },
+    {
+      "id": "n3",
+      "func": "decision:(*echoapi.Handler).ReportCallback:echoapi/handler.go:49",
+      "package": "example.com/toyshop/echoapi",
+      "pos": "echoapi/handler.go:49",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "err != nil"
+    },
+    {
+      "id": "n4",
+      "func": "exit:\"HTTP 400 · invalid callback body\"",
+      "package": "example.com/toyshop/echoapi",
+      "pos": "echoapi/handler.go:50",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 400 · invalid callback body",
+        "pos": "echoapi/handler.go:50"
+      }
+    },
+    {
+      "id": "n5",
+      "func": "decision:(*echoapi.Handler).ReportCallback:echoapi/handler.go:52",
+      "package": "example.com/toyshop/echoapi",
+      "pos": "echoapi/handler.go:52",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "err != nil",
+      "checks": "ReportID — required, length(4, 64), digit"
+    },
+    {
+      "id": "n6",
+      "func": "exit:\"HTTP 400 · report_id is invalid\"",
+      "package": "example.com/toyshop/echoapi",
+      "pos": "echoapi/handler.go:53",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 400 · report_id is invalid",
+        "pos": "echoapi/handler.go:53"
+      }
+    },
+    {
+      "id": "n7",
+      "func": "(*service.Service).GetOrder",
+      "package": "example.com/toyshop/service",
+      "pos": "service/service.go:66",
+      "kind": "step",
+      "async": false,
+      "resolution": "static",
+      "returns": "*model.Order, error"
+    },
+    {
+      "id": "n8",
+      "func": "decision:(*echoapi.Handler).ReportCallback:echoapi/handler.go:55",
+      "package": "example.com/toyshop/echoapi",
+      "pos": "echoapi/handler.go:55",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "err != nil",
+      "uses": [
+        "GetOrder"
+      ]
+    },
+    {
+      "id": "n9",
+      "func": "(*repo.Repo).CachedOrder",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:70",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "redis",
+          "detail": "Get",
+          "pos": "repo/repo.go:71"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "string, error"
+    },
+    {
+      "id": "n10",
+      "func": "(*repo.Repo).FindOrder",
+      "package": "example.com/toyshop/repo",
+      "pos": "repo/repo.go:57",
+      "kind": "step",
+      "effects": [
+        {
+          "type": "sql",
+          "detail": "SELECT id, item, qty FROM orders WHERE id = $1",
+          "pos": "repo/repo.go:59"
+        }
+      ],
+      "async": false,
+      "resolution": "static",
+      "returns": "*model.Order, error"
+    },
+    {
+      "id": "n11",
+      "func": "exit:\"HTTP 500 · failed to load order\"",
+      "package": "example.com/toyshop/echoapi",
+      "pos": "echoapi/handler.go:56",
+      "kind": "exit",
+      "async": false,
+      "resolution": "static",
+      "error": {
+        "kind": "message",
+        "message": "HTTP 500 · failed to load order",
+        "pos": "echoapi/handler.go:56"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "entrypoint",
+      "to": "n1"
+    },
+    {
+      "from": "n1",
+      "to": "n2",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n1",
+      "to": "n3",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n3",
+      "to": "n4",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n3",
+      "to": "n5",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n5",
+      "to": "n6",
+      "kind": "fail",
+      "label": "true"
+    },
+    {
+      "from": "n5",
+      "to": "n7",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n5",
+      "to": "n8",
+      "kind": "pass",
+      "label": "false"
+    },
+    {
+      "from": "n7",
+      "to": "n9"
+    },
+    {
+      "from": "n7",
+      "to": "n10"
+    },
+    {
+      "from": "n8",
+      "to": "n11",
+      "kind": "fail",
+      "label": "true"
+    }
+  ],
+  "stats": {
+    "raw_nodes": 5,
+    "kept_nodes": 11,
+    "dropped_by_rule": {
+      "default:logging": 1,
+      "default:trivial-constructor": 1
+    }
+  }
+}

@@ -1,0 +1,1664 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TOOL__ — flow maps</title>
+<style>
+  :root {
+    --bg: #F6F7F9; --grid-dot: #D5DBE6; --surface: #FFFFFF; --surface2: #EEF1F6;
+    --line: #D8DEE9; --edge: #B9C2D4; --text: #1B2433; --muted: #5A6577;
+    --accent: #0C9E8B; --accent-soft: rgba(12,158,139,.12);
+    --sql: #2A6BD4; --redis: #D2493A; --http: #7D4FD3; --kafka: #B67608; --grpc: #1F8A5B;
+    --security: #B0387F; --storage: #427687;
+    --ok: #1F8A5B;
+    --danger: #C7362B; --shadow: 0 1px 2px rgba(20,30,50,.08), 0 6px 20px rgba(20,30,50,.07);
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, monospace;
+    --ui: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E1420; --grid-dot: #223048; --surface: #18202F; --surface2: #1F2939;
+      --line: #2B364B; --edge: #3A4763; --text: #E9EEF6; --muted: #8C97AA;
+      --accent: #46D7C2; --accent-soft: rgba(70,215,194,.13);
+      --sql: #5B9DFF; --redis: #FF7B6C; --http: #B78AFF; --kafka: #FFB454; --grpc: #57D69A;
+      --security: #F27DBE; --storage: #6FB7CE;
+      --ok: #57D69A;
+      --danger: #FF8B7E; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] { --ok: #57D69A;
+    --bg: #0E1420; --grid-dot: #223048; --surface: #18202F; --surface2: #1F2939;
+    --line: #2B364B; --edge: #3A4763; --text: #E9EEF6; --muted: #8C97AA;
+    --accent: #46D7C2; --accent-soft: rgba(70,215,194,.13);
+    --sql: #5B9DFF; --redis: #FF7B6C; --http: #B78AFF; --kafka: #FFB454; --grpc: #57D69A;
+    --security: #F27DBE; --storage: #6FB7CE;
+    --danger: #FF8B7E; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"] { --ok: #1F8A5B;
+    --bg: #F6F7F9; --grid-dot: #D5DBE6; --surface: #FFFFFF; --surface2: #EEF1F6;
+    --line: #D8DEE9; --edge: #B9C2D4; --text: #1B2433; --muted: #5A6577;
+    --accent: #0C9E8B; --accent-soft: rgba(12,158,139,.12);
+    --sql: #2A6BD4; --redis: #D2493A; --http: #7D4FD3; --kafka: #B67608; --grpc: #1F8A5B;
+    --security: #B0387F; --storage: #427687;
+    --ok: #1F8A5B;
+    --danger: #C7362B; --shadow: 0 1px 2px rgba(20,30,50,.08), 0 6px 20px rgba(20,30,50,.07);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--ui); color: var(--text); background: var(--bg);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+
+  /* ── header ── */
+  header {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--surface);
+    z-index: 5;
+  }
+  .wordmark { display: flex; align-items: baseline; gap: 8px; margin-right: 4px; }
+  .wordmark b { font-size: 17px; font-weight: 650; letter-spacing: -0.02em; }
+  .wordmark span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .switcher { display: flex; gap: 4px; background: var(--surface2); padding: 3px; border-radius: 8px; }
+  .switcher button {
+    font: 500 12.5px var(--ui); color: var(--muted); background: none; border: 0;
+    padding: 5px 11px; border-radius: 6px; cursor: pointer;
+  }
+  .switcher button:hover { color: var(--text); }
+  .switcher button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .stats { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .stat { font: 500 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .stat b { color: var(--text); font-weight: 600; }
+  .stat .ratio { color: var(--accent); }
+
+  /* ── main split ── */
+  main { flex: 1; display: flex; min-height: 0; position: relative; }
+  #viewport {
+    flex: 1; position: relative; overflow: hidden; cursor: grab;
+    background-image: radial-gradient(var(--grid-dot) 1px, transparent 1.5px);
+    background-size: 26px 26px;
+  }
+  #viewport.panning { cursor: grabbing; }
+  #world { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+  #edges { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
+  #edges path { fill: none; stroke: var(--edge); stroke-width: 1.5; transition: stroke .15s, opacity .15s; }
+  #edges path.async { stroke-dasharray: 5 4; }
+  #arrow-call path { fill: var(--edge); }
+  #arrow-pass path { fill: color-mix(in srgb, var(--accent) 45%, var(--edge)); }
+  #arrow-fail path { fill: color-mix(in srgb, var(--danger) 70%, var(--edge)); }
+  #arrow-hot path { fill: var(--accent); }
+  #edges path.seq { stroke: color-mix(in srgb, var(--accent) 55%, var(--edge)); stroke-width: 2; }
+  .node.ghost { border-style: dotted; }
+  .node.dup { border-style: dotted; }
+  .node .nm .ovr { color: var(--accent); margin-left: 3px; font-size: 10px; vertical-align: super; }
+  .node.ghost .gh { display: block; font: 400 10.5px var(--ui); color: var(--muted); margin-top: 4px; }
+  #arrow-seq path { fill: color-mix(in srgb, var(--accent) 55%, var(--edge)); }
+  #edges path.fail { stroke: color-mix(in srgb, var(--danger) 70%, var(--edge)); }
+  #edges path.pass { stroke: color-mix(in srgb, var(--accent) 45%, var(--edge)); }
+  #edges path.hot { stroke: var(--accent); stroke-width: 2.2; }
+  #edges path.fail.hot { stroke: var(--danger); }
+  #edges text { font: 600 9px var(--mono); fill: var(--muted); }
+  .dimmed #edges path:not(.hot) { opacity: .18; }
+
+  /* ── nodes ── */
+  .node {
+    position: absolute; width: 250px; text-align: left;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 9px 11px; font-family: var(--ui); color: var(--text);
+    box-shadow: var(--shadow); cursor: pointer; transition: opacity .15s, border-color .15s;
+  }
+  .node:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .node .nm { font: 600 12.5px var(--mono); line-height: 1.35; overflow-wrap: break-word; display: block; }
+  .mode-business .node .nm { font-family: var(--ui); font-size: 13px; }
+  .node .pk { font: 400 10.5px var(--mono); color: var(--muted); margin-top: 3px; word-break: break-all; display: block; }
+  .node .dt { font: 400 10.5px var(--mono); color: var(--muted); margin-top: 5px; line-height: 1.45;
+              display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .node .rt { font: 400 10px var(--mono); color: var(--accent); opacity: .75; margin-top: 4px;
+              display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .node .ee { display: block; font: 500 10px var(--mono); color: var(--danger); opacity: .85;
+              margin-top: 4px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .node .oc { display: block; font: 500 10px var(--mono); margin-top: 4px; line-height: 1.5; }
+  .node .oc .fail-oc { color: var(--danger); }
+  .node .oc .pass-oc { color: var(--accent); opacity: .8; }
+  .node.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+  .dimmed .node:not(.hot) { opacity: .22; }
+
+  .node.entry { border-color: var(--accent); background: linear-gradient(var(--accent-soft), var(--accent-soft)) var(--surface); width: 250px; }
+  .node.entry .route { font: 700 13.5px var(--mono); letter-spacing: -0.01em; }
+  .node.entry .route .method { color: var(--accent); }
+
+  .node.has-eff { border-left: 4px solid var(--ec); padding-left: 9px; }
+  .mode-business .node .pk, .mode-business .node .rt { display: none; }
+  .mode-business .node .dt { display: none; }
+  .node .nm2 { font: 400 10.5px var(--mono); color: var(--muted); margin-top: 4px; display: block; line-height: 1.4; }
+  .node.terminal { border-style: dashed; }
+  .node.terminal .nm { color: var(--muted); font-style: italic; }
+
+  .node.decision { border-style: dashed; border-color: color-mix(in srgb, var(--kafka) 60%, transparent); width: 230px; }
+  .node.decision .nm { color: var(--text); font-weight: 500; }
+  .node.decision .glyph { color: var(--kafka); font-weight: 700; margin-right: 5px; }
+  .node.exit { border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+               background: color-mix(in srgb, var(--danger) 7%, var(--surface)); width: 220px; }
+  .node.exit .nm { color: var(--danger); }
+  .node.success { border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+                  background: color-mix(in srgb, var(--ok) 8%, var(--surface)); width: 220px; }
+  .node.success .nm { color: var(--ok); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .chip {
+    font: 600 9px var(--ui); text-transform: uppercase; letter-spacing: .06em;
+    padding: 2px 6px; border-radius: 99px; color: var(--muted);
+    background: var(--surface2); border: 1px solid var(--line);
+  }
+  .chip.eff { color: var(--ec); border-color: color-mix(in srgb, var(--ec) 45%, transparent); background: color-mix(in srgb, var(--ec) 12%, transparent); }
+  .chip.async { color: var(--kafka); border-color: color-mix(in srgb, var(--kafka) 45%, transparent); background: color-mix(in srgb, var(--kafka) 12%, transparent); }
+  .chip.multi { color: var(--http); border-color: color-mix(in srgb, var(--http) 45%, transparent); background: color-mix(in srgb, var(--http) 12%, transparent); }
+  .chip.dyn { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+
+  /* ── sketch (excalidraw-ish) skin ── */
+  body.sketch {
+    --hand: "Excalifont", "Virgil", "Segoe Print", "Chalkboard SE", "Marker Felt", "Comic Sans MS", cursive;
+  }
+  body.sketch .node {
+    border-width: 1.6px;
+    /* uneven radii read as a hand-drawn rectangle */
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    box-shadow: none;
+    font-family: var(--hand);
+  }
+  body.sketch .node .nm { font-family: var(--hand); font-size: 13.5px; letter-spacing: .01em; }
+  body.sketch .node .nm2, body.sketch .node .oc, body.sketch .node .ee,
+  body.sketch .node .pk, body.sketch .node .rt { font-family: var(--hand); }
+  body.sketch .chip { font-family: var(--hand); letter-spacing: .03em; border-radius: 125px 8px 115px 8px / 8px 115px 8px 125px; }
+  body.sketch .node.entry .route { font-family: var(--hand); }
+  body.sketch #edges path { filter: url(#roughen); stroke-width: 1.7; }
+  body.sketch #edges text { font-family: var(--hand); }
+  body.sketch .legend, body.sketch .switcher button, body.sketch .stat { font-family: var(--hand); }
+
+  /* ── canvas controls & legend ── */
+  .controls { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 6px; z-index: 4; }
+  .controls button {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--text); font: 600 15px var(--ui);
+    cursor: pointer; box-shadow: var(--shadow);
+  }
+  .controls button:hover { border-color: var(--accent); }
+  .legend {
+    position: absolute; left: 14px; bottom: 14px; z-index: 4; display: flex; gap: 10px; flex-wrap: wrap;
+    font: 500 10.5px var(--ui); color: var(--muted);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 11px; box-shadow: var(--shadow);
+  }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+  /* ── detail panel ── */
+  #panel {
+    width: 340px; border-left: 1px solid var(--line); background: var(--surface);
+    display: none; flex-direction: column; min-height: 0;
+  }
+  #panel.open { display: flex; }
+  #panel .phead { display: flex; align-items: flex-start; gap: 8px; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+  #panel .phead .t { font: 600 13px var(--mono); word-break: break-all; line-height: 1.45; }
+  #panel .phead button {
+    margin-left: auto; border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer;
+    padding: 0 2px; border-radius: 4px;
+  }
+  #panel .phead button:hover { color: var(--text); }
+  #panel .pbody { padding: 12px 16px 20px; overflow-y: auto; font-size: 12.5px; }
+  #panel h4 {
+    font: 600 10px var(--ui); text-transform: uppercase; letter-spacing: .09em;
+    color: var(--muted); margin: 16px 0 6px;
+  }
+  #panel h4:first-child { margin-top: 2px; }
+  #panel .kv { font: 400 11.5px var(--mono); color: var(--muted); word-break: break-all; line-height: 1.6; }
+  #panel .kv b { color: var(--text); font-weight: 500; }
+  #panel pre {
+    font: 400 11px var(--mono); line-height: 1.55; background: var(--surface2);
+    border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px;
+    white-space: pre-wrap; word-break: break-word; margin: 0;
+  }
+  #panel ul { margin: 0; padding: 0; list-style: none; }
+  #panel li { margin: 3px 0; }
+  #panel .link {
+    font: 400 11px var(--mono); color: var(--text); background: none; border: 0; padding: 2px 0;
+    cursor: pointer; text-align: left; word-break: break-all; line-height: 1.4;
+    border-bottom: 1px dotted transparent;
+  }
+  #panel .link:hover { color: var(--accent); }
+  #panel .empty { color: var(--muted); font-style: italic; }
+
+  @media (max-width: 760px) {
+    #panel { position: absolute; right: 0; top: 0; bottom: 0; z-index: 6; box-shadow: var(--shadow); }
+    .stats { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+  /* ── entity shelf: Business-mode home screen ── */
+  #home { position: absolute; inset: 0; z-index: 6; overflow-y: auto; background: var(--bg); padding: 26px 32px 60px; }
+  #home[hidden] { display: none; }
+  body:not(.mode-business) #home { display: none; }
+  #homeNav { display: none; }
+  .mode-business #homeNav { display: flex; }
+  .home-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+  .home-title { font: 650 16px var(--ui); letter-spacing: -0.01em; }
+  .home-sub { font: 400 12px var(--ui); color: var(--muted); }
+  #homeSearch {
+    font: 500 13px var(--ui); color: var(--text); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+    width: min(70vw, 440px); margin-bottom: 20px; display: block;
+  }
+  #homeSearch:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .shelfgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; max-width: 1150px; }
+  .entcard {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; cursor: pointer; box-shadow: var(--shadow); text-align: left;
+    font-family: var(--ui); color: var(--text); transition: border-color .15s;
+  }
+  .entcard:hover, .entcard:focus-visible { border-color: var(--accent); outline: none; }
+  .entcard .en, .entcard .tb, .entcard .ct { display: block; }
+  .entcard .en { font: 650 14.5px var(--ui); }
+  .entcard .en .ovr { color: var(--accent); font-size: 10px; vertical-align: super; margin-left: 3px; }
+  .entcard .tb { font: 400 10.5px var(--mono); color: var(--muted); margin-top: 4px; word-break: break-all; }
+  .entcard .ct { font: 500 11.5px var(--ui); color: var(--muted); margin-top: 9px; }
+  .entcard .ct b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .entcard.other { border-style: dashed; }
+  .entdetail { max-width: 780px; }
+  .entback {
+    font: 500 12.5px var(--ui); color: var(--accent); background: none; border: 0;
+    cursor: pointer; padding: 0; margin-bottom: 4px;
+  }
+  .entgroup h3 {
+    font: 600 11px var(--ui); color: var(--muted); text-transform: uppercase;
+    letter-spacing: .07em; margin: 18px 0 7px;
+  }
+  .flowrow {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 9px 12px; margin-bottom: 6px; cursor: pointer;
+    font: 500 13px var(--ui); color: var(--text); transition: border-color .15s;
+  }
+  .flowrow:hover, .flowrow:focus-visible { border-color: var(--accent); outline: none; }
+  .flowrow .ep { font: 500 10.5px var(--mono); color: var(--muted); margin-left: auto; white-space: nowrap; }
+  .flowrow .acc { font: 500 10px var(--ui); color: var(--accent); white-space: nowrap; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="roughen" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"></feTurbulence>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+  </filter>
+</svg>
+
+<header>
+  <div class="wordmark"><b>__TOOL__</b><span>flow map</span></div>
+  <nav class="switcher" id="homeNav" aria-label="Home"></nav>
+  <nav class="switcher" id="modeToggle" aria-label="View mode"></nav>
+  <nav class="switcher" id="switcher" aria-label="Flow"></nav>
+  <div class="stats" id="stats"></div>
+</header>
+
+<main>
+  <div id="viewport">
+    <div id="world">
+      <svg id="edges"></svg>
+      <div id="nodes"></div>
+    </div>
+    <div class="legend" id="legend" aria-hidden="true"></div>
+    <div class="controls">
+      <button id="zin" title="Zoom in" aria-label="Zoom in">+</button>
+      <button id="zout" title="Zoom out" aria-label="Zoom out">−</button>
+      <button id="zfit" title="Fit to view" aria-label="Fit to view">⤢</button>
+    </div>
+  </div>
+  <div id="home" hidden aria-label="Entities"></div>
+  <aside id="panel" aria-label="Node details">
+    <div class="phead"><span class="t" id="ptitle"></span><button id="pclose" aria-label="Close">✕</button></div>
+    <div class="pbody" id="pbody"></div>
+  </aside>
+</main>
+
+<script>
+const FLOWS = __FLOWS__;
+// INDEX is the entity shelf (index.json), embedded by --all scans; null for
+// single-flow pages.
+const INDEX = __INDEX__;
+
+const EFFECT_LABEL = { sql: "SQL", redis: "Redis", http: "HTTP", kafka: "Kafka", grpc: "gRPC", security: "Security", storage: "Storage" };
+const COL_W = 320, GAP_Y = 18, PAD = 60;
+
+const $ = (id) => document.getElementById(id);
+const viewport = $("viewport"), world = $("world"), edgesSvg = $("edges"), nodesDiv = $("nodes");
+
+let flow = null, view = { x: 40, y: 40, k: 1 }, selected = null;
+// Business mode is the default reading; Tech is the engineer's view.
+let mode = "business";
+// Sketch skin: hand-drawn look, excalidraw-style. Purely cosmetic.
+let sketch = true;
+
+/* ---------- name helpers ---------- */
+function shortName(func) {
+  const m = func.match(/^\(\*?(.+)\)\.(.+)$/);
+  if (m) {
+    const recv = m[1].split("/").pop();
+    return recv + "." + m[2];
+  }
+  if (func.startsWith("dynamic:")) return func.slice(8).split("/").pop();
+  return func.split("/").pop();
+}
+// business-mode humanization: split identifiers on camelCase/snake_case,
+// keep acronyms, capitalize the first word. Pure client-side.
+const ACRONYMS = new Set(["ID","URL","URI","API","SQL","DB","HTTP","HTTPS","JSON","XML","UUID","QR","SMS","PDF","TTL","OTP","GRPC","V1","V2","V3","V4"]);
+function splitIdent(word) {
+  return word
+    .replace(/_/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .split(/\s+/).filter(Boolean);
+}
+function humanize(func, pkg, asyncIn) {
+  // An anonymous function that survived filtering is a real body of work
+  // launched inline — naming it after its parent would draw a confusing
+  // twin card ("Get fcb report" twice). Say what it is instead.
+  const anon = /\$\d+$/.test(shortName(func).split(".").pop());
+  if (anon) {
+    const parent = humanize(func.replace(/\$\d+$/, ""), pkg);
+    const what = asyncIn ? "Background task" : "Inline step";
+    return what + " (in " + parent.charAt(0).toLowerCase() + parent.slice(1) + ")";
+  }
+  const method = shortName(func).split(".").pop().replace(/\$\d+$/, "");
+  const words = splitIdent(method).map((w, i) => {
+    const up = w.toUpperCase();
+    if (ACRONYMS.has(up)) return up;
+    const lw = w.toLowerCase();
+    return i === 0 ? lw.charAt(0).toUpperCase() + lw.slice(1) : lw;
+  });
+  let title = words.join(" ");
+  // A bare verb ("Get", "Do", "Flush") says nothing — borrow context from
+  // the qualifier: the receiver type when there is one
+  // (scoringTimings.flush -> "Flush scoring timings"), else the package
+  // (validator.Get -> "Get validator").
+  if (words.length === 1) {
+    // Layer names (useCase, handler, repository) say nothing — climb to
+    // the first qualifier with domain meaning: receiver, package, then
+    // the package's parent dir ("auth" for internal/auth/usecase).
+    const layer = /^(use ?cases?|uc|handlers?|services?|svc|repositor(y|ies)|repo|impl|delivery|controllers?|servers?|v\d+|http|grpc)$/i;
+    const segs = (pkg || "").split("/");
+    const cands = [];
+    const sn = shortName(func);
+    if (sn.includes(".")) cands.push(sn.slice(0, sn.lastIndexOf(".")));
+    if (segs.length) cands.push(segs[segs.length - 1]);
+    if (segs.length > 1) cands.push(segs[segs.length - 2]);
+    for (const qual of cands) {
+      const ctx = splitIdent(qual).map((w) => (ACRONYMS.has(w.toUpperCase()) ? w.toUpperCase() : w.toLowerCase())).join(" ");
+      if (ctx && ctx !== words[0].toLowerCase() && !layer.test(ctx)) { title += " " + ctx; break; }
+    }
+  }
+  return title;
+}
+// Error-exit labels on cards: sentinel identifiers humanize, messages stay
+// verbatim — except printf placeholders, which read as jargon: in business
+// mode %v/%s/%d become an ellipsis ("phone: %v" -> "phone: …"), meaning "the
+// concrete detail is substituted at runtime".
+function exitLabelText(e) {
+  if (mode === "business" && /^[A-Za-z_][A-Za-z0-9_]*$/.test(e)) return splitIdent(e).join(" ");
+  return softenPlaceholders(e);
+}
+function softenPlaceholders(text) {
+  if (mode !== "business") return text;
+  return text.replace(/%[+#\-\d.]*[a-zA-Z]/g, "…").replace(/…(\s*…)+/g, "…");
+}
+// businessCond renders a condition as words when every clause matches a
+// template — otherwise returns "" and the card shows the outcome only (the
+// raw condition stays in the panel). Bans code-speak: no nil, no operators.
+function businessCond(cond) {
+  if (!cond) return "";
+  if (/\|\|/.test(cond)) return ""; // OR trees read as code, not language
+  const humanIdent = (x) => {
+    const base = x.replace(/^[!*&(]+|[)]+$/g, "").split(".").pop();
+    if (!/^\w+$/.test(base)) return null;
+    // A 1–2 letter variable (s, o, tx) is a name for the compiler, not for
+    // the reader: "no s" means nothing. Fail the template so the card can
+    // fall back to the subject ("get by id returned nothing"). Real short
+    // words the reader knows (id, ok) pass via the acronym list.
+    if (base.length < 3 && !ACRONYMS.has(base.toUpperCase())) return null;
+    return splitIdent(base).join(" ").toLowerCase();
+  };
+  const clause = (c) => {
+    c = c.trim();
+    let m;
+    if (/^err\s*!=\s*nil$/.test(c)) return "it fails";
+    if (/^err\s*==\s*nil$/.test(c)) return "it succeeds";
+    if ((m = /^errors\.Is\(err,\s*([\w.]+)\)$/.exec(c))) { const h = humanIdent(m[1]); return h && `the error is ${h}`; }
+    if ((m = /^!errors\.Is\(err,\s*([\w.]+)\)$/.exec(c))) { const h = humanIdent(m[1]); return h && `the error is not ${h}`; }
+    if ((m = /^([\w.*]+)\s*==\s*nil$/.exec(c))) { const h = humanIdent(m[1]); return h && `no ${h}`; }
+    if ((m = /^([\w.*]+)\s*!=\s*nil$/.exec(c))) { const h = humanIdent(m[1]); return h && `${h} exists`; }
+    if ((m = /^len\(([\w.]+)\)\s*==\s*0$/.exec(c))) { const h = humanIdent(m[1]); return h && `no ${h}`; }
+    if ((m = /^len\(([\w.]+)\)\s*(>|>=)\s*(\d+)$/.exec(c))) { const h = humanIdent(m[1]); return h && `more than ${m[3]} ${h}`; }
+    if ((m = /^([\w.]+)\s*==\s*""$/.exec(c))) { const h = humanIdent(m[1]); return h && `${h} is empty`; }
+    if ((m = /^([\w.]+)\s*!=\s*""$/.exec(c))) { const h = humanIdent(m[1]); return h && `${h} is set`; }
+    if ((m = /^([\w.]+)\s*(>|>=|<|<=)\s*([\d.]+)$/.exec(c))) { const h = humanIdent(m[1]); return h && `${h} ${m[2]} ${m[3]}`; }
+    if ((m = /^!([\w.]+)$/.exec(c))) { const h = humanIdent(m[1]); return h && `not ${h}`; }
+    if (/^[\w.]+$/.test(c)) return humanIdent(c);
+    return null;
+  };
+  const parts = cond.split("&&").map(clause);
+  if (parts.some((x) => !x)) return "";
+  return parts.join(" and ");
+}
+
+// Humanize identifiers inside a condition, leaving quoted strings alone.
+function humanizeCond(cond) {
+  return (cond || "").split('"').map((seg, i) => {
+    if (i % 2 === 1) return seg; // inside quotes
+    return seg.replace(/[A-Za-z_][A-Za-z0-9_]{3,}/g, (ident) =>
+      splitIdent(ident).map((w) => (ACRONYMS.has(w.toUpperCase()) ? w.toUpperCase() : w.toLowerCase())).join(" "));
+  }).join('"');
+}
+// tech-mode wrapping: identifiers may only break at word boundaries
+// (camelCase transitions, dots, slashes) — never mid-word.
+function breakable(name) {
+  let out = "";
+  for (let i = 0; i < name.length; i++) {
+    const c = name[i], prev = name[i - 1];
+    if (i > 0 && (/[._\/(]/.test(prev) || (/[a-z0-9]/.test(prev) && /[A-Z]/.test(c)))) out += "<wbr>";
+    out += escapeHTML(c);
+  }
+  return out;
+}
+// serviceContext: which external service a call belongs to, derived from
+// the gateway package (pkg/gateways/partners -> "partners") or the gRPC
+// full-method name (/shop.Orders/Get... -> "Orders").
+function serviceContext(e, pkg) {
+  if (e.type === "grpc" && e.detail && e.detail.startsWith("/")) {
+    const svc = e.detail.slice(1).split("/")[0].split(".").pop();
+    if (svc) return svc;
+  }
+  const m = (pkg || "").match(/(?:gateways?|clients?|integrations?)\/([^\/]+)/);
+  if (m) return m[1];
+  return "";
+}
+// business-mode effect phrases derived from the effect itself — no LLM.
+function effectPhrase(e, pkg) {
+  switch (e.type) {
+    case "sql": return sqlPhrase(e.detail || "");
+    case "redis": return "uses cache";
+    case "kafka": return e.topic ? `publishes event ${e.topic}` : "publishes event";
+    case "http": {
+      const svc = serviceContext(e, pkg);
+      return svc ? `calls ${svc} API` : "calls external API";
+    }
+    case "grpc": {
+      const svc = serviceContext(e, pkg);
+      return svc ? `calls ${svc} service` : "calls another service";
+    }
+    case "security": return e.detail || "security operation";
+    case "storage": {
+      const d = e.detail || "";
+      if (/^Presigned/.test(d)) return "creates temporary file link";
+      if (/^Put|^Upload|^FPut/.test(d)) return "uploads file";
+      if (/^Get|^FGet|^Stat/.test(d)) return "reads file";
+      if (/^Remove|^Delete/.test(d)) return "deletes file";
+      return "uses object storage";
+    }
+    default: return e.type;
+  }
+}
+
+// sqlPhrase: verb + table + notable columns, all parsed statically from the
+// statement — "updates users — deleted_at, status", "reads client_whitelist".
+// Falls back to the generic verb when the table is not resolvable.
+function sqlPhrase(q) {
+  const s = q.trim();
+  const up = s.toUpperCase();
+  const ident = (re) => { const m = re.exec(s); return m ? m[1].replace(/["'`]/g, "").split(".").pop() : ""; };
+  if (/^(SELECT|SHOW|WITH.*SELECT)/s.test(up) || /^(GET|FIND|QUERY|EXIST|COUNT|SUM|ROWS|ITERATE|FINDANDCOUNT)/.test(up)) {
+    const t = ident(/FROM\s+([\w."'`]+)/i);
+    return t ? `reads ${t}` : "reads database";
+  }
+  if (/^INSERT/.test(up)) {
+    const t = ident(/INTO\s+([\w."'`]+)/i);
+    return t ? `adds to ${t}` : "writes database";
+  }
+  if (/^UPDATE/.test(up)) {
+    const t = ident(/^UPDATE\s+([\w."'`]+)/i);
+    const setM = /SET\s+([\s\S]+?)(WHERE|RETURNING|$)/i.exec(s);
+    let cols = [];
+    if (setM) {
+      cols = setM[1].split(",").map((c) => c.split("=")[0].trim().replace(/["'`]/g, "").split(".").pop())
+        .filter((c) => /^\w+$/.test(c)).slice(0, 4);
+    }
+    if (t && cols.includes("deleted_at")) return `marks ${t} deleted`;
+    if (t && cols.length) return `updates ${t} — ${cols.join(", ")}`;
+    return t ? `updates ${t}` : "writes database";
+  }
+  if (/^DELETE/.test(up)) {
+    const t = ident(/FROM\s+([\w."'`]+)/i);
+    return t ? `deletes from ${t}` : "writes database";
+  }
+  if (/^(EXEC|CREATE|TRUNCATE|REFRESH|SAVE|MERGE)/.test(up)) return "writes database";
+  return "uses database";
+}
+
+function trimPkg(pkg, module) {
+  if (!pkg) return "";
+  if (pkg === module) return pkg.split("/").pop();
+  if (pkg.startsWith(module + "/")) return pkg.slice(module.length + 1);
+  return pkg;
+}
+
+/* ---------- graph model ---------- */
+function buildModel(doc) {
+  const nodes = new Map();
+  nodes.set("entrypoint", { id: "entrypoint", entry: true, doc: doc.entrypoint });
+  for (const n of doc.nodes) nodes.set(n.id, { id: n.id, doc: n });
+  for (const n of nodes.values()) { n.out = []; n.in = []; }
+  const edgeList = [];
+  for (const n of nodes.values()) n.outEdges = [];
+  for (const e of doc.edges) {
+    const a = nodes.get(e.from), b = nodes.get(e.to);
+    if (a && b) {
+      a.out.push(b); b.in.push(a);
+      const rec = { from: a, to: b, async: !!e.async, kind: e.kind || "", label: e.label || "" };
+      if (rec.async) b.asyncIn = true;
+      a.outEdges.push(rec);
+      edgeList.push(rec);
+    }
+  }
+  // BFS depth (min)
+  const root = nodes.get("entrypoint");
+  root.depth = 0;
+  const q = [root], seen = new Set([root]);
+  while (q.length) {
+    const cur = q.shift();
+    for (const c of cur.out) if (!seen.has(c)) { seen.add(c); c.depth = cur.depth + 1; q.push(c); }
+  }
+  let maxD = 0;
+  for (const n of nodes.values()) { if (n.depth === undefined) n.depth = 1; maxD = Math.max(maxD, n.depth); }
+  // The flow ends in a success terminal (both modes). It hangs off the
+  // FINAL executed step: follow the last continue edge from the root down
+  // the spine — never off the entrypoint or an early error branch.
+  if (doc.entrypoint.returns || doc.entrypoint.success) {
+    let last = root, hops = 0;
+    while (hops++ < 300) {
+      const nexts = last.outEdges.filter((e) => !e.async && e.kind !== "fail" &&
+        e.to.doc && e.to.doc.kind !== "exit");
+      if (!nexts.length) break;
+      last = nexts[nexts.length - 1].to;
+    }
+    if (last !== root) {
+      const succ = {
+        id: "__success", success: true,
+        doc: { kind: "success", returns: doc.entrypoint.returns, success: doc.entrypoint.success, response: doc.entrypoint.response },
+        out: [], in: [], outEdges: [], depth: last.depth + 1,
+      };
+      nodes.set(succ.id, succ);
+      const rec = { from: last, to: succ, async: false, kind: "seq", label: "" };
+      last.out.push(succ); succ.in.push(last); last.outEdges.push(rec); edgeList.push(rec);
+    }
+  }
+  return { doc, nodes, root, maxD, edgeList };
+}
+
+/* ---------- rendering ---------- */
+function chipHTML(n) {
+  const d = n.doc, chips = [];
+  if (d.effects && d.effects.length) {
+    if (mode === "business") {
+      const seen = new Map(); // phrase -> [type, overridden]
+      for (const e of d.effects) {
+        const phrase = e.label || effectPhrase(e, d.package);
+        if (!seen.has(phrase)) seen.set(phrase, [e.type, !!e.label]);
+      }
+      for (const [phrase, [type, ovr]] of seen) {
+        chips.push(`<span class="chip eff" style="--ec:var(--${type})"${ovr ? ' title="label set manually in .softmap.yaml"' : ""}>${escapeHTML(phrase)}${ovr ? " •" : ""}</span>`);
+      }
+    } else {
+      const counts = new Map();
+      for (const e of d.effects) counts.set(e.type, (counts.get(e.type) || 0) + 1);
+      for (const [type, c] of counts) {
+        chips.push(`<span class="chip eff" style="--ec:var(--${type})">${EFFECT_LABEL[type] || type}${c > 1 ? " ×" + c : ""}</span>`);
+      }
+    }
+  }
+  if (d.async) chips.push(`<span class="chip async">async</span>`);
+  if (d.resolution === "static-multi") chips.push(`<span class="chip multi">one of several</span>`);
+  if (d.resolution === "dynamic") chips.push(`<span class="chip dyn">unresolved</span>`);
+  if (d.resolution === "truncated") chips.push(`<span class="chip dyn">truncated</span>`);
+  if (d.collapsed && d.collapsed.length) {
+    const mappers = d.collapsed.filter((c) => /(^|\.)((To|From|Map)[A-Z]|to[A-Z]|from[A-Z])|((From|To)(Model|DTO|Response|Request|Proto|Doc|Entity)$)/.test(c));
+    const rest = d.collapsed.filter((c) => !mappers.includes(c));
+    if (mappers.length) chips.push(`<span class="chip" title="pure DTO mapping folded in: ${escapeHTML(mappers.join(", "))}">+${mappers.length} mapping</span>`);
+    if (rest.length) chips.push(`<span class="chip" title="plumbing folded into this step: ${escapeHTML(rest.join(", "))}">+${rest.length} inlined</span>`);
+  }
+
+  if (d.fallible) chips.push(`<span class="chip async" title="a call inside can fail; its error propagates to the caller">⚠ may fail</span>`);
+  if (d.checks_overflow) chips.push(`<span class="chip" title="conditions checked here beyond the card budget — open the panel for the full list">+${d.checks_overflow} checks</span>`);
+  return chips.length ? `<span class="chips">${chips.join("")}</span>` : "";
+}
+
+function nodeHTML(n, module) {
+  if (!n.entry && n.doc.kind === "decision" && n.doc.gate) {
+    // A gate ends nothing — it decides whether the steps below run at all.
+    const cond = mode === "business" ? humanizeCond(n.doc.condition) : n.doc.condition || "";
+    let html = `<span class="nm"><span class="glyph">?</span>${mode === "business" ? escapeHTML(cond) : breakable(cond)}</span>`;
+    if (mode !== "business" && n.doc.uses && n.doc.uses.length) {
+      html += `<span class="pk">uses ${n.doc.uses.map(escapeHTML).join(", ")}</span>`;
+    }
+    html += chipHTML(n);
+    if (n.doc.branch) {
+      // Either/or: name both exclusive paths.
+      const side = (lbl) => {
+        const e = n.outEdges.find((x) => x.label === lbl);
+        if (!e) return "continues";
+        return mode === "business" ? humanize(e.to.doc.func, e.to.doc.package, e.to.asyncIn) : shortName(e.to.doc.func);
+      };
+      html += `<span class="oc"><span class="pass-oc">yes → ${escapeHTML(side("yes"))}</span></span>` +
+              `<span class="oc"><span class="fail-oc">no → ${escapeHTML(side("no"))}</span></span>`;
+    } else {
+      html += `<span class="oc"><span class="pass-oc">yes → steps below run</span></span>` +
+              `<span class="oc"><span class="fail-oc">no → skipped</span></span>`;
+    }
+    return html;
+  }
+  if (!n.entry && n.doc.kind === "decision") {
+    const failEdge = n.outEdges.find((e) => e.kind === "fail");
+    const err = failEdge ? (failEdge.to.doc.error || {}) : {};
+    const exitLabel = err.name || (err.message ? `"${err.message}"` : "error");
+    if (mode === "business") {
+      // The card asks the QUESTION; the error text and the HTTP code live
+      // on the red exit card and the fail edge — never duplicated here.
+      const subj = n.doc.uses && n.doc.uses.length
+        ? n.doc.uses.map((u) => splitIdent(u).join(" ").toLowerCase()).join(", ")
+        : "";
+      let q;
+      if (n.doc.checks) {
+        q = `checks ${n.doc.checks}`;
+      } else {
+        let bc = businessCond(n.doc.condition);
+        if (bc && /^it fails/.test(bc) && subj) {
+          q = bc.replace(/^it fails/, `${subj} returned error`);
+        } else if (bc) {
+          q = bc;
+        } else if (subj && /^[\w.*]+\s*==\s*nil$|^len\([\w.]+\)\s*==\s*0$/.test(n.doc.condition || "")) {
+          // The variable name was too cryptic to say ("s == nil"), but the
+          // provenance isn't: name the producer, not the variable.
+          q = `${subj} returned nothing`;
+        } else if (subj && /^[\w.*]+\s*!=\s*nil$/.test(n.doc.condition || "")) {
+          q = `${subj} returned a result`;
+        } else {
+          q = humanizeCond(n.doc.condition);
+        }
+      }
+      let html = `<span class="nm"><span class="glyph">?</span>${escapeHTML(q)}</span>`;
+      if (subj && !q.includes(subj)) {
+        html += `<span class="nm2">after ${escapeHTML(subj)}</span>`;
+      }
+      return html;
+    }
+    let html = `<span class="nm"><span class="glyph">?</span>${breakable(n.doc.condition || "")}</span>`;
+    if (n.doc.checks) html += `<span class="pk">checks ${escapeHTML(n.doc.checks)}</span>`;
+    if (n.doc.uses && n.doc.uses.length) {
+      html += `<span class="pk">uses ${n.doc.uses.map(escapeHTML).join(", ")}</span>`;
+    }
+    if (failEdge) {
+      const passVal = failEdge.label === "true" ? "false" : "true";
+      html += `<span class="oc"><span class="fail-oc">${failEdge.label} → ✗ ${escapeHTML(exitLabel)}</span></span>` +
+              `<span class="oc"><span class="pass-oc">${passVal} → continues ↦</span></span>`;
+    }
+    return html;
+  }
+  if (!n.entry && n.doc.kind === "success") {
+    if (n.doc.success) {
+      const resp = n.doc.response ? ` · ${escapeHTML(n.doc.response.type)}` : "";
+      return `<span class="nm">✓ responds ${escapeHTML(n.doc.success)}${resp}</span>`;
+    }
+    const ret = (n.doc.returns || "").split(",").map((t) => t.trim()).filter((t) => t !== "error")[0] || "";
+    const short = ret.replace(/^\*/, "").split(".").pop();
+    if (short) {
+      return `<span class="nm">✓ returns ${escapeHTML(splitIdent(short).join(" ").toLowerCase())}</span>`;
+    }
+    return `<span class="nm">✓ flow completes</span>`;
+  }
+  if (!n.entry && n.doc.kind === "exit") {
+    const err = n.doc.error || {};
+    let label = err.kind === "sentinel" ? err.name : err.kind === "message" ? `"${err.message}"` : "error";
+    const t = mode === "business" && err.kind === "sentinel"
+      ? escapeHTML(splitIdent(label).join(" "))
+      : escapeHTML(softenPlaceholders(label));
+    return `<span class="nm">✗ ${t}</span>` +
+           (n.doc.pos ? `<span class="pk">${escapeHTML(n.doc.pos)}</span>` : "");
+  }
+  if (n.entry) {
+    const ep = n.doc;
+    const route = ep.method || ep.path
+      ? `<span class="route"><span class="method">${ep.method || ep.kind}</span> ${ep.path || ep.topic || ""}</span>`
+      : `<span class="route"><span class="method">${ep.kind}</span></span>`;
+    let html = `${route}<span class="pk">${ep.func}</span><span class="pk">${ep.pos || ""}</span>`;
+    const chips = [];
+    if (ep.request) chips.push(`<span class="chip eff" style="--ec:var(--accent)">⇥ ${escapeHTML(ep.request.type)} · ${ep.request.fields.length} fields</span>`);
+    if (ep.response) chips.push(`<span class="chip eff" style="--ec:var(--ok)">⇤ ${escapeHTML(ep.response.type)}</span>`);
+    if (chips.length) html += `<span class="chips">${chips.join("")}</span>`;
+    return html;
+  }
+  const d = n.doc;
+  const ovr = `<span class="ovr" title="label set manually in .softmap.yaml">•</span>`;
+  const title = mode === "business"
+    ? (d.label ? escapeHTML(d.label) + ovr : escapeHTML(humanize(d.func, d.package, n.asyncIn)))
+    : breakable(shortName(d.func));
+  let html = `<span class="nm">${title}</span>`;
+  const pk = trimPkg(d.package, module);
+  if (pk) html += `<span class="pk">${pk}</span>`;
+  if (d.returns && d.kind === "step") html += `<span class="rt">→ ${escapeHTML(d.returns)}</span>`;
+  if (d.effects && d.effects.length && d.effects[0].detail) {
+    html += `<span class="dt">${escapeHTML(d.effects[0].detail)}</span>`;
+  }
+  if (d.error_exits && d.error_exits.length) {
+    for (const e of d.error_exits.slice(0, 2)) {
+      html += `<span class="ee">⤳ ${escapeHTML(exitLabelText(e))}</span>`;
+    }
+    if (d.error_exits.length > 2) {
+      html += `<span class="ee" style="color:var(--muted)">⤳ +${d.error_exits.length - 2} more exits</span>`;
+    }
+  }
+  return html + chipHTML(n);
+}
+
+function escapeHTML(s) {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+function render(model) {
+  flow = model;
+  selected = null;
+  $("panel").classList.remove("open");
+  nodesDiv.innerHTML = "";
+  // One marker per edge color: context-stroke would be cleaner but is not
+  // reliably supported in markers, which renders arrows black-on-dark.
+  const mk = (id) =>
+    `<marker id="${id}" orient="auto" markerWidth="8" markerHeight="8" refX="7" refY="4">` +
+    `<path d="M0,0.5 L7,4 L0,7.5 z"></path></marker>`;
+  edgesSvg.innerHTML = `<defs>${mk("arrow-call")}${mk("arrow-pass")}${mk("arrow-fail")}${mk("arrow-hot")}${mk("arrow-seq")}</defs>`;
+  const module = model.doc.module;
+
+  // create node elements
+  for (const n of model.nodes.values()) {
+    const el = document.createElement("button");
+    el.className = "node";
+    if (n.entry) el.classList.add("entry");
+    const d = n.doc;
+    if (!n.entry) {
+      if (d.effects && d.effects.length) { el.classList.add("has-eff"); el.style.setProperty("--ec", `var(--${d.effects[0].type})`); }
+      if (d.kind === "terminal") el.classList.add("terminal");
+      if (d.kind === "decision") el.classList.add("decision");
+      if (d.kind === "exit") el.classList.add("exit");
+      if (d.kind === "success") el.classList.add("success");
+    }
+    el.innerHTML = nodeHTML(n, module);
+    el.addEventListener("click", (ev) => { ev.stopPropagation(); select(n); });
+    el.addEventListener("mouseenter", () => highlight(n, true));
+    el.addEventListener("mouseleave", () => highlight(n, false));
+    n.el = el;
+    nodesDiv.appendChild(el);
+  }
+
+  const tilt = (id) => {
+    if (!sketch) return "";
+    let h = 0;
+    for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) % 997;
+    return ` rotate(${((h % 13) - 6) / 12}deg)`;
+  };
+
+  let worldW = 0, worldH = 0;
+  const drawList = [];
+
+  if (mode === "business") {
+    // ── OUTLINE LAYOUT: the flow as nested cards, like the code reads ──
+    // A step's body sits BELOW it, indented — so every column segment
+    // unambiguously belongs to its parent, and long diagonal edges vanish.
+    const INDENT = 64, VGAP = 12;
+    let y = 0;
+    const placed = new Set([model.root]);
+    // Primary placement: a step reachable from the main (sync) flow gets its
+    // full card there, even when a goroutine branch calls it earlier in
+    // source order — the async side-quest shows the ↻ repeat, not the story.
+    const primaryEdge = new Map();
+    {
+      const visit = (n, allowAsync, seen) => {
+        for (const e of n.outEdges) {
+          if (!allowAsync && e.async) continue;
+          if (!primaryEdge.has(e.to)) primaryEdge.set(e.to, e);
+          if (!seen.has(e.to)) { seen.add(e.to); visit(e.to, allowAsync, seen); }
+        }
+      };
+      visit(model.root, false, new Set([model.root]));
+      visit(model.root, true, new Set([model.root]));
+    }
+    const place = (n, depth) => {
+      n.x = depth * INDENT;
+      n.y = y;
+      n.el.style.transform = `translate(${n.x}px, ${n.y}px)${tilt(n.id)}`;
+      y += n.el.offsetHeight + VGAP;
+      worldW = Math.max(worldW, n.x + n.el.offsetWidth);
+    };
+    let ghostSeq = 0;
+    const walk = (n, depth) => {
+      place(n, depth);
+      for (const e of n.outEdges) {
+        if (placed.has(e.to) || primaryEdge.get(e.to) !== e) {
+          // A step already drawn elsewhere: a small repeat card at the
+          // call position (click jumps to the original) — long reference
+          // arcs across the canvas confused more than they explained.
+          const target = e.to;
+          if (target.doc && (target.doc.kind === "exit" || !target.outEdges.length)) {
+            // A leaf (an exit, a step with no calls of its own) repeats as
+            // a real card — there is no subtree to duplicate, and a "jump
+            // to the full step" reference here confused more than it saved.
+            const dup = { id: `dup:${ghostSeq++}:${target.id}`, el: document.createElement("button") };
+            dup.el.className = target.el.className.replace(" selected", "") + " dup";
+            dup.el.innerHTML = target.el.innerHTML;
+            const dnm = dup.el.querySelector(".nm");
+            if (dnm) dnm.insertAdjacentText("afterbegin", "↻ ");
+            dup.el.style.cssText = target.el.style.cssText;
+            dup.el.style.transform = "";
+            dup.el.addEventListener("click", (ev) => { ev.stopPropagation(); select(target); });
+            dup.el.addEventListener("mouseenter", () => highlight(target, true));
+            dup.el.addEventListener("mouseleave", () => highlight(target, false));
+            nodesDiv.appendChild(dup.el);
+            place(dup, depth + 1);
+            drawList.push({ from: n, to: target, toEl: dup, async: e.async, kind: e.kind, label: e.label, elbow: true });
+            continue;
+          }
+          const g = { id: `ghost:${ghostSeq++}:${target.id}`, el: document.createElement("button") };
+          g.el.className = "node ghost";
+          const t = target.entry ? "entrypoint"
+            : target.doc.kind === "exit" ? "✗ " + ((target.doc.error || {}).name || (target.doc.error || {}).message || "exit")
+            : (mode === "business" ? humanize(target.doc.func, target.doc.package, target.asyncIn) : shortName(target.doc.func));
+          g.el.innerHTML = `<span class="nm">↻ ${escapeHTML(t)}</span>` +
+            `<span class="gh">repeat call — click to jump to the full step</span>`;
+          g.el.title = "this step is called again here; its full card is elsewhere in the flow";
+          g.el.addEventListener("click", (ev) => { ev.stopPropagation(); select(target); center(target); });
+          g.el.addEventListener("mouseenter", () => highlight(target, true));
+          g.el.addEventListener("mouseleave", () => highlight(target, false));
+          nodesDiv.appendChild(g.el);
+          place(g, depth + 1);
+          drawList.push({ from: n, to: target, toEl: g, async: e.async, kind: e.kind, label: e.label, elbow: true });
+          continue;
+        }
+        placed.add(e.to);
+        drawList.push({ ...e, elbow: true });
+        walk(e.to, depth + 1);
+      }
+    };
+    walk(model.root, 0);
+    worldH = y;
+  } else {
+    // ── COLUMN LAYOUT (tech): full call graph, depth → columns ──
+    const cols = [];
+    for (const n of model.nodes.values()) (cols[n.depth] = cols[n.depth] || []).push(n);
+    let x = 0;
+    const colX = [];
+    for (let d = 0; d < cols.length; d++) { colX[d] = x; x += COL_W; }
+    for (let d = 1; d < cols.length; d++) {
+      const rank = new Map();
+      let i = 0;
+      for (const p of cols[d - 1] || []) {
+        for (const e of p.outEdges) {
+          if (e.to.depth === d && !rank.has(e.to)) rank.set(e.to, i++);
+        }
+      }
+      cols[d].sort((a, b) => (rank.has(a) ? rank.get(a) : 1e9) - (rank.has(b) ? rank.get(b) : 1e9));
+    }
+    for (let d = 0; d < cols.length; d++) {
+      let yy = 0;
+      for (const n of cols[d]) {
+        n.x = colX[d];
+        n.y = yy;
+        yy += n.el.offsetHeight + GAP_Y;
+      }
+      worldH = Math.max(worldH, yy);
+    }
+    for (let d = 0; d < cols.length; d++) {
+      const h = cols[d].reduce((sum, n) => sum + n.el.offsetHeight + GAP_Y, 0);
+      const off = Math.max(0, (worldH - h) / 2);
+      for (const n of cols[d]) { n.y += off; n.el.style.transform = `translate(${n.x}px, ${n.y}px)${tilt(n.id)}`; }
+    }
+    worldW = x;
+    for (const e of model.edgeList) drawList.push(e);
+  }
+  edgesSvg.setAttribute("width", worldW + PAD);
+  edgesSvg.setAttribute("height", worldH + PAD);
+
+  for (const e of drawList) {
+    const n = e.from, c = e.to;
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    let d, lx, ly;
+    if (e.elbow) {
+      // Tree guide: down from under the parent's edge, then right into the
+      // child — short, never crosses unrelated cards.
+      const tgt = e.toEl || c;
+      const gx = n.x + 18;
+      const cy = tgt.y + Math.min(16, tgt.el.offsetHeight / 2);
+      d = `M ${gx} ${n.y + n.el.offsetHeight} L ${gx} ${cy} L ${tgt.x - 4} ${cy}`;
+      lx = gx + 8; ly = cy - 6;
+    } else {
+      const x1 = n.x + n.el.offsetWidth, y1 = n.y + n.el.offsetHeight / 2;
+      const x2 = c.x, y2 = c.y + c.el.offsetHeight / 2;
+      const mx = (x1 + x2) / 2;
+      d = `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2 - 4} ${y2}`;
+      lx = (x1 + x2) / 2; ly = (y1 + y2) / 2 - 4;
+    }
+    p.setAttribute("d", d);
+    const marker = e.kind === "fail" ? "arrow-fail" : e.kind === "pass" ? "arrow-pass" : e.kind === "seq" ? "arrow-seq" : "arrow-call";
+    p.dataset.marker = marker;
+    p.setAttribute("marker-end", `url(#${marker})`);
+    if (e.async) p.classList.add("async");
+    if (e.kind) p.classList.add(e.kind);
+    p.dataset.from = n.id; p.dataset.to = c.id;
+    edgesSvg.appendChild(p);
+    if (e.label) {
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("x", lx);
+      t.setAttribute("y", ly);
+      t.textContent = edgeLabelText(e);
+      edgesSvg.appendChild(t);
+    }
+  }
+  fit(worldW, worldH);
+  renderStats(model.doc);
+}
+
+function renderStats(doc) {
+  // kept_nodes includes decisions/exits the guards pass ADDS, so raw vs
+  // kept compared apples to oranges (a double minus at worst). Count steps
+  // on both sides instead.
+  const keptSteps = (doc.nodes || []).filter((n) => n.kind === "step" || n.kind === "terminal").length;
+  const raw = doc.stats.raw_nodes || 0;
+  const pct = raw ? Math.max(0, Math.round((1 - keptSteps / raw) * 100)) : 0;
+  $("stats").innerHTML =
+    `<span class="stat" id="noiseStat" style="cursor:pointer" title="click: what was hidden">` +
+    `<b>${keptSteps}</b> steps · <span class="ratio">${pct}% noise removed</span></span>` +
+    `<span class="stat">${doc.module}</span>`;
+  const entries = Object.entries(doc.stats.dropped_by_rule || {}).sort((a, b) => b[1] - a[1]);
+  $("noiseStat").onclick = (ev) => {
+    ev.stopPropagation();
+    const old = $("noisePop");
+    if (old) { old.remove(); return; }
+    const pop = document.createElement("div");
+    pop.id = "noisePop";
+    pop.style.cssText = "position:absolute;top:46px;right:12px;z-index:40;background:var(--surface);" +
+      "border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:10px 12px;max-height:50vh;overflow-y:auto";
+    pop.innerHTML = `<div class="kv" style="margin-bottom:6px"><b>What was hidden</b></div>` +
+      (entries.length
+        ? entries.map(([r, c]) => `<div class="kv">${escapeHTML(r)} <b>${c}</b></div>`).join("")
+        : `<div class="kv">nothing was filtered</div>`);
+    document.body.appendChild(pop);
+    const close = (e2) => { if (!pop.contains(e2.target)) { pop.remove(); document.removeEventListener("click", close); } };
+    setTimeout(() => document.addEventListener("click", close), 0);
+  };
+}
+
+// Business edge labels carry the OUTCOME, not bare truth values: the fail
+// edge names where it ends ("fails → 404", "no resellers attached"), the
+// continue edge says "ok". Branch edges keep their yes/no path names. Tech
+// mode shows the raw condition values.
+function edgeLabelText(e) {
+  if (mode !== "business") return e.label;
+  if (e.kind === "fail") {
+    const err = (e.to.doc && e.to.doc.error) || {};
+    const m = /^HTTP (\d+)/.exec(err.message || "");
+    if (m) return "fails → " + m[1];
+    if (err.name) return splitIdent(err.name.replace(/^Err/, "")).join(" ").toLowerCase();
+    return "fails";
+  }
+  if (e.label === "true" || e.label === "false") return "ok";
+  return e.label;
+}
+
+/* ---------- highlight & select ---------- */
+function neighborSet(n) {
+  const set = new Set([n]);
+  n.out.forEach((c) => set.add(c));
+  n.in.forEach((p) => set.add(p));
+  usesTargets(n).forEach((t) => set.add(t));
+  return set;
+}
+// The steps a decision's condition reads its data from ("uses" provenance):
+// hovering the decision lights up the call it checks.
+function usesTargets(n) {
+  if (!n.doc || !n.doc.uses || !n.doc.uses.length) return [];
+  const out = [];
+  for (const m of flow.nodes.values()) {
+    if (m.entry || !m.doc.func) continue;
+    for (const u of n.doc.uses) {
+      if (m.doc.func.endsWith("." + u) || m.doc.func.endsWith(")." + u)) out.push(m);
+    }
+  }
+  return out;
+}
+// The corridor through n: everything transitively called from it AND every
+// path leading into it. Selecting an effect leaf keeps its callers lit, so
+// the connection back to the flow is never lost.
+function corridor(n) {
+  const set = new Set([n]);
+  const down = [n];
+  while (down.length) {
+    const cur = down.shift();
+    for (const c of cur.out) if (!set.has(c)) { set.add(c); down.push(c); }
+  }
+  const up = [n];
+  while (up.length) {
+    const cur = up.shift();
+    for (const p of cur.in) if (!set.has(p)) { set.add(p); up.push(p); }
+  }
+  return set;
+}
+function setHighlight(nodeSet, edgePred) {
+  world.parentElement.classList.toggle("dimmed", !!nodeSet);
+  for (const m of flow.nodes.values()) m.el.classList.toggle("hot", !!nodeSet && nodeSet.has(m));
+  for (const p of edgesSvg.querySelectorAll("path[data-from]")) {
+    const hot = !!nodeSet && edgePred(p);
+    p.classList.toggle("hot", hot);
+    // Arrowheads follow the line color; fail arrows stay danger-colored.
+    const base = p.dataset.marker;
+    p.setAttribute("marker-end", `url(#${hot && base !== "arrow-fail" ? "arrow-hot" : base})`);
+  }
+  if (selected) selected.el.classList.add("selected");
+}
+function applySelectionHighlight() {
+  if (!selected) { setHighlight(null, null); return; }
+  const set = corridor(selected);
+  setHighlight(set, (p) => set.has(flow.nodes.get(p.dataset.from)) && set.has(flow.nodes.get(p.dataset.to)));
+}
+function highlight(n, on) {
+  if (selected) return; // selection subtree stays until deselected
+  if (!on) { setHighlight(null, null); return; }
+  const set = neighborSet(n);
+  setHighlight(set, (p) => p.dataset.from === n.id || p.dataset.to === n.id);
+}
+function select(n) {
+  if (selected) selected.el.classList.remove("selected");
+  selected = n;
+  n.el.classList.add("selected");
+  applySelectionHighlight();
+  openPanel(n);
+}
+
+function openPanel(n) {
+  const panel = $("panel"), body = $("pbody");
+  panel.classList.add("open");
+  const module = flow.doc.module;
+  // Single render commit: title and body always change together, so a
+  // fast second click can never leave one panel's header over another's
+  // content.
+  const commit = (title, html) => {
+    $("ptitle").textContent = title;
+    body.innerHTML = html;
+    body.querySelectorAll("[data-jump]").forEach((b) =>
+      b.addEventListener("click", () => {
+        const t = flow.nodes.get(b.dataset.jump);
+        if (t) { select(t); center(t); }
+      }));
+  };
+  const nodeTitle = (m) => m.entry ? "entrypoint"
+    : m.success || m.doc.kind === "success" ? "✓ success"
+    : m.doc.kind === "decision" ? "? " + (m.doc.condition || "").slice(0, 48)
+    : m.doc.kind === "exit" ? "✗ " + ((m.doc.error || {}).name || (m.doc.error || {}).message || "exit")
+    : (mode === "business" ? humanize(m.doc.func, m.doc.package, m.asyncIn) : shortName(m.doc.func));
+  if (n.entry) {
+    const ep = n.doc;
+    commit(ep.id,
+      `<h4>Entrypoint</h4><div class="kv">kind <b>${ep.kind}</b><br>` +
+      (ep.method ? `method <b>${ep.method}</b><br>` : "") +
+      (ep.path ? `path <b>${escapeHTML(ep.path)}</b><br>` : "") +
+      (ep.topic ? `topic <b>${escapeHTML(ep.topic)}</b><br>` : "") +
+      `func <b>${escapeHTML(ep.func)}</b><br>pos <b>${ep.pos || "?"}</b></div>` +
+      (ep.error_exits && ep.error_exits.length
+        ? `<h4>Error exits (${ep.error_exits.length})</h4><ul>` +
+          ep.error_exits.map((c) => `<li><span class="kv" style="color:var(--danger)">⤳ ${escapeHTML(c)}</span></li>`).join("") + `</ul>`
+        : "") +
+      (ep.effects && ep.effects.length
+        ? `<h4>Effects (${ep.effects.length})</h4>` +
+          ep.effects.map((e) => `<div class="kv"><b>${EFFECT_LABEL[e.type] || e.type}</b> ${escapeHTML(e.detail || "")}</div>`).join("")
+        : "") +
+      dtoSection("Request body", ep.request) +
+      dtoSection("Response body", ep.response) +
+      listSection("Calls", n.out));
+    return;
+  }
+  const d = n.doc;
+  if (d.kind === "decision") {
+    const dTitle = "? " + (d.condition || "");
+    let html = `<h4>Decision</h4><div class="kv">condition <b>${escapeHTML(d.condition || "")}</b><br>` +
+      (d.checks ? `checks <b>${escapeHTML(d.checks)}</b><br>` : "") +
+      (d.pos ? `${escapeHTML(d.pos)}<br>` : "") +
+      (d.gate
+        ? `yes → the gated steps below run; no → they are skipped and the flow moves on</div>`
+        : `fails, flow ends → see the ✗ exit; passes → flow continues</div>`);
+    if (d.uses && d.uses.length) {
+      html += `<h4>Uses data from</h4><ul>` + d.uses.map((u) => {
+        const target = [...flow.nodes.values()].find((m) => !m.entry && m.doc.func && m.doc.func.endsWith(u));
+        return target
+          ? `<li><button class="link" data-jump="${target.id}">→ ${escapeHTML(u)}</button></li>`
+          : `<li><span class="kv">${escapeHTML(u)}</span></li>`;
+      }).join("") + `</ul>`;
+    }
+    if (d.effects && d.effects.length) {
+      html += `<h4>Effects (${d.effects.length})</h4>` + d.effects.map((e) =>
+        `<div class="kv">${e.type.toUpperCase()}${e.topic ? " · " + escapeHTML(e.topic) : ""}${e.pos ? " · " + escapeHTML(e.pos) : ""}${e.alt ? " · ⑂ alternative branch" : ""}</div>` +
+        (e.detail ? `<pre>${escapeHTML(e.detail)}</pre>` : "")).join("");
+    }
+    if (d.collapsed && d.collapsed.length) {
+      html += `<h4>Inlined helpers (${d.collapsed.length})</h4><ul>` +
+        d.collapsed.map((c) => `<li><span class="kv">${escapeHTML(c)}</span></li>`).join("") + `</ul>`;
+    }
+    if (d.gate && d.branch) {
+      const yesE = n.outEdges.filter((x) => x.label === "yes");
+      const noE = n.outEdges.filter((x) => x.label === "no");
+      const li = (x) => `<li><button class="link" data-jump="${x.to.id}">→ ${escapeHTML(nodeTitle(x.to))}</button></li>`;
+      if (yesE.length) html += `<h4>Yes →</h4><ul>${yesE.map(li).join("")}</ul>`;
+      if (noE.length) html += `<h4>No →</h4><ul>${noE.map(li).join("")}</ul>`;
+    } else if (d.gate) {
+      if (n.out.length) html += listSection("Runs when yes", n.out);
+    } else {
+      // BOTH outcomes, always: the exit and where the flow continues.
+      const failE = n.outEdges.find((x) => x.kind === "fail");
+      const conts = n.outEdges.filter((x) => x.kind !== "fail");
+      let items = "";
+      if (failE) {
+        items += `<li><button class="link" data-jump="${failE.to.id}">✗ fails → ${escapeHTML(nodeTitle(failE.to))}</button></li>`;
+      }
+      if (conts.length) {
+        items += conts.map((x) =>
+          `<li><button class="link" data-jump="${x.to.id}">→ ok → ${escapeHTML(nodeTitle(x.to))}</button></li>`).join("");
+      } else {
+        items += `<li><span class="kv">→ ok → flow continues</span></li>`;
+      }
+      html += `<h4>Outcomes</h4><ul>${items}</ul>`;
+    }
+    commit(dTitle, html);
+    return;
+  }
+  if (d.kind === "success") {
+    commit("✓ flow completes",
+      (d.success ? `<h4>Success response</h4><pre>${escapeHTML(d.success)}</pre>` : "") +
+      dtoSection("Response body", d.response) +
+      (d.returns ? `<h4>Returns</h4><pre>${escapeHTML(d.returns)}</pre>` : "") +
+      listSection("Reached after", n.in));
+    return;
+  }
+  if (d.kind === "exit") {
+    const err = d.error || {};
+    commit("✗ flow ends", `<h4>${err.kind === "sentinel" ? "Sentinel error" : err.kind === "message" ? "Error message" : "Error"}</h4>` +
+      `<pre>${escapeHTML(err.name || err.message || "error")}</pre>` +
+      (err.pos ? `<div class="kv" style="margin-top:6px">returned at <b>${escapeHTML(err.pos)}</b></div>` : "") +
+      listSection("Rejected from", n.in));
+    return;
+  }
+  let html = `<h4>Function</h4><div class="kv"><b>${escapeHTML(d.func)}</b><br>` +
+    (d.package ? `${escapeHTML(trimPkg(d.package, module))}<br>` : "") +
+    (d.pos ? `${escapeHTML(d.pos)}<br>` : "") +
+    (d.returns ? `returns <b>${escapeHTML(d.returns)}</b><br>` : "") +
+    `kind <b>${d.kind}</b> · resolution <b>${d.resolution}</b>${d.async ? " · <b>async</b>" : ""}</div>`;
+  if (d.effects && d.effects.length) {
+    html += `<h4>Effects (${d.effects.length})</h4>`;
+    if (d.effects.some((e) => e.alt)) {
+      html += `<div class="kv" style="margin-bottom:4px">⑂ marks statements in alternative branches — they never all run together; unmarked ones run in order</div>`;
+    }
+    for (const e of d.effects) {
+      html += `<div class="kv" style="margin:8px 0 3px"><b>${EFFECT_LABEL[e.type] || e.type}</b>` +
+        (e.async ? " · async" : "") + (e.pos ? ` · ${escapeHTML(e.pos)}` : "") + (e.alt ? " · ⑂ alternative branch" : "") + `</div>` +
+        `<pre>${escapeHTML(e.detail || "")}</pre>`;
+      if (e.type === "kafka") {
+        html += `<div class="kv" style="margin-top:4px">topic <b>${e.topic ? escapeHTML(e.topic) : "not statically resolvable"}</b>` +
+          (e.topic_expr ? `<br>expr <b>${escapeHTML(e.topic_expr)}</b>` : "") + `</div>`;
+      }
+    }
+  }
+  if (d.error_exits && d.error_exits.length) {
+    html += `<h4>Error exits (${d.error_exits.length})</h4><ul>` +
+      d.error_exits.map((c) => `<li><span class="kv" style="color:var(--danger)">⤳ ${escapeHTML(c)}</span></li>`).join("") + `</ul>`;
+  }
+  if (d.collapsed && d.collapsed.length) {
+    html += `<h4>Inlined helpers (${d.collapsed.length})</h4><ul>` +
+      d.collapsed.map((c) => `<li><span class="kv">${escapeHTML(c)}</span></li>`).join("") + `</ul>`;
+  }
+  // Badge meanings live here too — hover-only tooltips are easy to miss.
+  const notes = [];
+  if (d.fallible) notes.push("⚠ may fail — a call inside can fail; its error propagates to the caller");
+  if (d.checks_overflow) notes.push(`+${d.checks_overflow} checks — more conditions are checked in this step than the card shows`);
+  if (d.collapsed && d.collapsed.length) notes.push(`+${d.collapsed.length} inlined — trivial plumbing folded into this step (listed above)`);
+  if (notes.length) {
+    html += `<h4>Badges</h4>` + notes.map((x) => `<div class="kv">${escapeHTML(x)}</div>`).join("");
+  }
+  html += listSection("Called from", n.in);
+  html += listSection("Calls", n.out);
+  commit(shortName(d.func), html);
+}
+// dtoSection renders a data contract: wire names first — that is what the
+// analyst matches against API specs and payload samples.
+function dtoSection(title, dto) {
+  if (!dto) return "";
+  let html = `<h4>${title} — ${escapeHTML(dto.type)}${dto.format ? " · " + dto.format : ""}</h4>`;
+  html += `<pre>` + dto.fields.map((f) => {
+    const wire = f.tag || f.name;
+    let line = `${wire.padEnd(24)} ${escapeHTML(f.type)}`;
+    if (f.rules) line += `\n${"".padEnd(24)} ⚑ ${escapeHTML(f.rules)}`;
+    return line;
+  }).join("\n") + (dto.truncated ? "\n…" : "") + `</pre>`;
+  return html;
+}
+
+function listSection(title, list) {
+  if (!list.length) return `<h4>${title}</h4><div class="empty">nothing — this is a leaf</div>`;
+  const numbered = title === "Calls"; // call order = code order
+  return `<h4>${title}</h4><ul>` + list.map((m, idx) => {
+    let label = m.entry ? "entrypoint" : (mode === "business" ? humanize(m.doc.func, m.doc.package, m.asyncIn) : shortName(m.doc.func));
+    if (!m.entry && m.doc.kind === "decision") label = "? " + (m.doc.condition || "");
+    if (!m.entry && m.doc.kind === "exit") label = "✗ " + ((m.doc.error || {}).name || (m.doc.error || {}).message || "exit");
+    const prefix = numbered ? `${idx + 1}. ` : "→ ";
+    return `<li><button class="link" data-jump="${m.id}">${prefix}${escapeHTML(label)}</button></li>`;
+  }).join("") + `</ul>`;
+}
+
+/* ---------- pan & zoom ---------- */
+function apply() { world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.k})`; }
+function fit(w, h) {
+  const vw = viewport.clientWidth, vh = viewport.clientHeight;
+  const k = Math.min(1, Math.min((vw - 60) / (w + 60), (vh - 60) / (h + 60)));
+  view = { k, x: Math.max(30, (vw - w * k) / 2), y: Math.max(30, (vh - h * k) / 2) };
+  apply();
+}
+function center(n) {
+  const vw = viewport.clientWidth, vh = viewport.clientHeight;
+  view.x = vw / 2 - (n.x + n.el.offsetWidth / 2) * view.k;
+  view.y = vh / 2 - (n.y + n.el.offsetHeight / 2) * view.k;
+  apply();
+}
+viewport.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const k0 = view.k, k = Math.min(2.5, Math.max(0.1, k0 * (e.deltaY < 0 ? 1.12 : 0.89)));
+  const r = viewport.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  view.x = px - ((px - view.x) / k0) * k;
+  view.y = py - ((py - view.y) / k0) * k;
+  view.k = k;
+  apply();
+}, { passive: false });
+// Dragging works from anywhere, including on top of a node card: a press
+// only becomes a pan after ~5px of movement, otherwise it stays a click.
+let pan = null, panMoved = false;
+viewport.addEventListener("pointerdown", (e) => {
+  if (e.target.closest(".controls,.legend")) return;
+  pan = { x: e.clientX - view.x, y: e.clientY - view.y, sx: e.clientX, sy: e.clientY, id: e.pointerId };
+  panMoved = false;
+});
+viewport.addEventListener("pointermove", (e) => {
+  if (!pan) return;
+  if (!panMoved) {
+    if (Math.hypot(e.clientX - pan.sx, e.clientY - pan.sy) < 5) return;
+    panMoved = true;
+    viewport.classList.add("panning");
+    viewport.setPointerCapture(pan.id);
+  }
+  view.x = e.clientX - pan.x; view.y = e.clientY - pan.y; apply();
+});
+viewport.addEventListener("pointerup", () => { pan = null; viewport.classList.remove("panning"); });
+// A drag must not count as a click on whatever the pointer was over.
+viewport.addEventListener("click", (e) => {
+  if (panMoved) { panMoved = false; e.stopPropagation(); }
+}, true);
+$("zin").onclick = () => { view.k = Math.min(2.5, view.k * 1.25); apply(); };
+$("zout").onclick = () => { view.k = Math.max(0.1, view.k / 1.25); apply(); };
+$("zfit").onclick = () => renderCurrent();
+$("pclose").onclick = () => {
+  $("panel").classList.remove("open");
+  if (selected) { selected.el.classList.remove("selected"); selected = null; }
+  setHighlight(null, null);
+};
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("pclose").onclick(); });
+viewport.addEventListener("click", () => $("pclose").onclick());
+
+/* ---------- legend: only what the current flow actually contains ---------- */
+function renderLegend(doc) {
+  const eff = new Set(), kinds = new Set();
+  let async = false, repeats = false;
+  const seen = new Set();
+  for (const n of doc.nodes || []) {
+    kinds.add(n.kind);
+    for (const e of n.effects || []) eff.add(e.type);
+    if (seen.has(n.id)) repeats = true;
+    seen.add(n.id);
+  }
+  for (const e of doc.edges || []) {
+    if (e.async) async = true;
+    const tgt = e.to;
+    // repeats: a node with more than one incoming call edge
+  }
+  const counts = {};
+  for (const e of doc.edges || []) counts[e.to] = (counts[e.to] || 0) + 1;
+  repeats = Object.values(counts).some((c) => c > 1);
+  const parts = [];
+  const effMeta = { sql: "SQL", redis: "Redis", http: "HTTP", kafka: "Kafka", grpc: "gRPC", security: "Security", storage: "Storage" };
+  for (const t of ["sql", "redis", "http", "kafka", "grpc", "security", "storage"]) {
+    if (eff.has(t)) parts.push(`<span><i style="background:var(--${t})"></i>${effMeta[t]}</span>`);
+  }
+  parts.push(`<span><i style="background:var(--surface);border:1px solid var(--line);border-radius:3px"></i>step</span>`);
+  if (kinds.has("decision")) parts.push(`<span><i style="background:none;border:1px dashed var(--kafka);border-radius:3px"></i>decision</span>`);
+  if (kinds.has("exit")) parts.push(`<span><i style="background:none;border:1px solid var(--danger);border-radius:3px"></i>✗ exit</span>`);
+  if (async) parts.push(`<span style="color:var(--muted)">⌁ dashed edge = async</span>`);
+  if (repeats) parts.push(`<span style="color:var(--muted)">↻ called again here (click jumps to the step)</span>`);
+  $("legend").innerHTML = parts.join("");
+}
+
+/* ---------- view mode toggle ---------- */
+const mt = $("modeToggle");
+[["business", "Business"], ["tech", "Tech"]].forEach(([value, label]) => {
+  const b = document.createElement("button");
+  b.textContent = label;
+  b.setAttribute("aria-pressed", String(mode === value));
+  b.onclick = () => {
+    if (mode === value) return;
+    mode = value;
+    document.body.classList.toggle("mode-business", mode === "business");
+    mt.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", "false"));
+    b.setAttribute("aria-pressed", "true");
+    renderCurrent();
+  };
+  mt.appendChild(b);
+});
+document.body.classList.toggle("mode-business", mode === "business");
+
+// Sketch is a style toggle, not a view mode — it lives on the right, away
+// from Business/Tech.
+const sketchWrap = document.createElement("nav");
+sketchWrap.className = "switcher";
+sketchWrap.setAttribute("aria-label", "Style");
+const sketchBtn = document.createElement("button");
+sketchBtn.textContent = "✏ Sketch";
+sketchBtn.setAttribute("aria-pressed", String(sketch));
+sketchBtn.onclick = () => {
+  sketch = !sketch;
+  document.body.classList.toggle("sketch", sketch);
+  sketchBtn.setAttribute("aria-pressed", String(sketch));
+  renderCurrent();
+};
+sketchWrap.appendChild(sketchBtn);
+$("stats").parentNode.insertBefore(sketchWrap, $("stats"));
+document.body.classList.toggle("sketch", sketch);
+
+/* ---------- entity shelf: Business-mode home screen ---------- */
+let current = 0;
+// syncSwitcherUI: reassigned by whichever switcher UI gets built below, so
+// the home screen can open flows and keep the header in sync.
+let syncSwitcherUI = () => {};
+const flowIdx = new Map(FLOWS.map((f, i) => [f.label, i]));
+// Per-flow entity text feeds the Tech-mode combobox: typing an entity name
+// ("заказ", "order") filters to that entity's endpoints.
+const flowEntityText = new Map();
+if (INDEX) {
+  for (const ent of INDEX.entities) {
+    for (const f of ent.flows) {
+      flowEntityText.set(f.id, (flowEntityText.get(f.id) || "") + " " + ent.key + " " + ent.name.toLowerCase());
+    }
+  }
+}
+const homeDiv = $("home");
+let entOpen = null; // open entity key, "__other__", or null for the shelf
+
+function openFlow(id) {
+  const i = flowIdx.get(id);
+  if (i === undefined) return;
+  current = i;
+  homeDiv.hidden = true;
+  syncSwitcherUI();
+  renderCurrent();
+}
+
+// Access-kind labels, in the fixed serialization order.
+const ACCESS_KINDS = [
+  ["creates", (a) => a === "creates", "create"],
+  ["reads", (a) => a === "reads", "read"],
+  ["updates", (a) => a === "updates", "update"],
+  ["deletes", (a) => a === "deletes", "delete"],
+  ["publishes", (a) => a.startsWith("publishes"), "publish"],
+  ["consumes", (a) => a.startsWith("consumes"), "consume"],
+];
+function accSummary(ent) {
+  const parts = [];
+  for (const [, match, label] of ACCESS_KINDS) {
+    const n = ent.flows.filter((f) => (f.access || []).some(match)).length;
+    if (n) parts.push(`<b>${n}</b> ${label}`);
+  }
+  return parts.join(" · ");
+}
+function entName(ent) {
+  return escapeHTML(ent.name) + (ent.name_overridden
+    ? '<span class="ovr" title="name set manually in .softmap.yaml">•</span>' : "");
+}
+function flowRowHTML(f, accessNote) {
+  const acc = accessNote ? `<span class="acc">${escapeHTML(accessNote)}</span>` : "";
+  return `<button type="button" class="flowrow" data-flow="${escapeHTML(f.id)}">` +
+    `<span>${escapeHTML(f.title)}</span>${acc}<span class="ep">${escapeHTML(f.id)}</span></button>`;
+}
+function entCardHTML(ent) {
+  const tables = (ent.tables || []).length
+    ? `<span class="tb">${escapeHTML(ent.tables.join(", "))}</span>` : "";
+  const summary = accSummary(ent);
+  const ct = `<span class="ct"><b>${ent.flows.length}</b> flow${ent.flows.length === 1 ? "" : "s"}` +
+    (summary ? ` · ${summary}` : "") + `</span>`;
+  return `<button type="button" class="entcard" data-ent="${escapeHTML(ent.key)}">` +
+    `<span class="en">${entName(ent)}</span>${tables}${ct}</button>`;
+}
+
+function renderHome() {
+  if (!INDEX) return;
+  const q = (homeDiv.querySelector("#homeSearch") || {}).value || "";
+  const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const hit = (hay) => terms.every((t) => hay.includes(t));
+  let body = "";
+
+  const ent = entOpen && entOpen !== "__other__" && INDEX.entities.find((e) => e.key === entOpen);
+  if (entOpen === "__other__") {
+    body += `<button type="button" class="entback" id="entback">← all entities</button>`;
+    body += `<div class="entdetail"><div class="home-head"><span class="home-title">Other</span>` +
+      `<span class="home-sub">flows without a recognized entity</span></div>`;
+    body += (INDEX.other || []).map((f) => flowRowHTML(f, "")).join("");
+    body += `</div>`;
+  } else if (ent) {
+    body += `<button type="button" class="entback" id="entback">← all entities</button>`;
+    const tables = (ent.tables || []).length
+      ? `<span class="home-sub">${escapeHTML(ent.tables.join(", "))}</span>` : "";
+    body += `<div class="entdetail"><div class="home-head">` +
+      `<span class="home-title">${entName(ent)}</span>${tables}</div>`;
+    for (const [kind, match, label] of ACCESS_KINDS) {
+      const rows = ent.flows.filter((f) => (f.access || []).some(match));
+      if (!rows.length) continue;
+      body += `<div class="entgroup"><h3>${label}s</h3>` +
+        rows.map((f) => flowRowHTML(f, (f.access || []).filter(match).join(", "))).join("") + `</div>`;
+    }
+    const rest = ent.flows.filter((f) => !(f.access || []).length);
+    if (rest.length) {
+      body += `<div class="entgroup"><h3>other operations</h3>` +
+        rest.map((f) => flowRowHTML(f, "")).join("") + `</div>`;
+    }
+    body += `</div>`;
+  } else {
+    body += `<div class="home-head"><span class="home-title">Entities</span>` +
+      `<span class="home-sub">what this service works with — derived from tables, routes and topics</span></div>`;
+    body += `<input type="text" id="homeSearch" placeholder="search entities and endpoints…" ` +
+      `value="${escapeHTML(q)}" aria-label="Search entities and endpoints">`;
+    // Biggest shelves first: on a 400-flow service the entity the owner is
+    // looking for is almost always a top card, not an alphabetical accident.
+    const ents = INDEX.entities.filter((e) =>
+      hit((e.key + " " + e.name + " " + (e.tables || []).join(" ")).toLowerCase()))
+      .slice().sort((a, b) => b.flows.length - a.flows.length);
+    body += `<div class="shelfgrid">`;
+    body += ents.map(entCardHTML).join("");
+    if ((INDEX.other || []).length && (!terms.length || hit("other"))) {
+      const o = INDEX.other;
+      body += `<button type="button" class="entcard other" data-ent="__other__">` +
+        `<span class="en">Other</span><span class="tb">no recognized entity</span>` +
+        `<span class="ct"><b>${o.length}</b> flow${o.length === 1 ? "" : "s"}</span></button>`;
+    }
+    body += `</div>`;
+    if (terms.length) {
+      const flows = INDEX.flows.filter((f) =>
+        hit((f.id + " " + f.title + " " + (flowEntityText.get(f.id) || "")).toLowerCase()));
+      if (flows.length) {
+        body += `<div class="entgroup" style="max-width:780px"><h3>endpoints</h3>` +
+          flows.map((f) => flowRowHTML(f, "")).join("") + `</div>`;
+      } else if (!ents.length) {
+        body += `<div class="home-sub" style="margin-top:14px">nothing matches</div>`;
+      }
+    }
+  }
+  homeDiv.innerHTML = body;
+
+  const search = homeDiv.querySelector("#homeSearch");
+  if (search) {
+    search.addEventListener("input", () => {
+      const pos = search.selectionStart;
+      renderHome();
+      const s2 = homeDiv.querySelector("#homeSearch");
+      s2.focus();
+      s2.setSelectionRange(pos, pos);
+    });
+  }
+  const back = homeDiv.querySelector("#entback");
+  if (back) back.onclick = () => { entOpen = null; renderHome(); };
+  homeDiv.querySelectorAll(".entcard").forEach((el) => {
+    el.onclick = () => { entOpen = el.dataset.ent; renderHome(); homeDiv.scrollTop = 0; };
+  });
+  homeDiv.querySelectorAll(".flowrow").forEach((el) => {
+    el.onclick = () => openFlow(el.dataset.flow);
+  });
+}
+
+if (INDEX) {
+  const hb = document.createElement("button");
+  hb.textContent = "⌂ Entities";
+  hb.onclick = () => { entOpen = null; homeDiv.hidden = false; renderHome(); };
+  $("homeNav").appendChild(hb);
+}
+
+/* ---------- flow switcher: buttons for a handful, dropdown for many ---------- */
+function renderCurrent() { renderLegend(FLOWS[current].doc); render(buildModel(FLOWS[current].doc)); }
+const sw = $("switcher");
+if (FLOWS.length <= 6) {
+  FLOWS.forEach((f, i) => {
+    const b = document.createElement("button");
+    b.textContent = f.label;
+    b.setAttribute("aria-pressed", String(i === 0));
+    b.onclick = () => {
+      current = i;
+      homeDiv.hidden = true;
+      syncSwitcherUI();
+      renderCurrent();
+    };
+    sw.appendChild(b);
+  });
+  syncSwitcherUI = () => {
+    [...sw.querySelectorAll("button")].forEach((x, i) => x.setAttribute("aria-pressed", String(i === current)));
+  };
+} else {
+  // Hundreds of flows: a searchable combobox instead of a bare <select>.
+  // Type-to-filter (space-separated terms AND together), arrows + Enter,
+  // Esc restores, "/" focuses from anywhere.
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:relative;display:flex;align-items:center";
+  const inp = document.createElement("input");
+  inp.type = "text";
+  inp.setAttribute("aria-label", "Find flow");
+  inp.placeholder = "search endpoints…  ( / )";
+  inp.style.cssText = "font:500 12.5px var(--mono);color:var(--text);background:var(--surface);" +
+    "border:1px solid var(--line);border-radius:6px;padding:5px 10px;width:min(46vw,430px)";
+  const list = document.createElement("div");
+  list.style.cssText = "position:absolute;top:calc(100% + 4px);left:0;z-index:30;display:none;" +
+    "width:min(60vw,540px);max-height:60vh;overflow-y:auto;background:var(--surface);" +
+    "border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px";
+  const count = document.createElement("span");
+  count.style.cssText = "font:500 11px var(--mono);color:var(--muted);align-self:center;padding:0 10px;white-space:nowrap";
+  count.textContent = FLOWS.length + " flows";
+  let matches = [], active = 0, open = false;
+
+  const syncInput = () => { inp.value = FLOWS[current].label; };
+  syncSwitcherUI = syncInput;
+  const show = (on) => { open = on; list.style.display = on ? "block" : "none"; };
+  const choose = (i) => { current = i; homeDiv.hidden = true; syncInput(); show(false); inp.blur(); renderCurrent(); };
+  const paintActive = () => {
+    [...list.children].forEach((el, k) => {
+      el.style.background = k === active ? "var(--accent-soft)" : "none";
+    });
+  };
+  const refresh = () => {
+    const terms = inp.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    matches = [];
+    FLOWS.forEach((f, i) => {
+      // Entities act as a filter here too: typing an entity name matches
+      // every endpoint on that entity's shelf.
+      const hay = f.label.toLowerCase() + (flowEntityText.get(f.label) || "");
+      if (terms.every((t) => hay.includes(t))) matches.push(i);
+    });
+    if (active >= matches.length) active = 0;
+    count.textContent = terms.length ? matches.length + " of " + FLOWS.length : FLOWS.length + " flows";
+    list.innerHTML = "";
+    if (!matches.length) {
+      const empty = document.createElement("div");
+      empty.style.cssText = "font:400 12px var(--ui);color:var(--muted);padding:8px 10px";
+      empty.textContent = "no endpoints match";
+      list.appendChild(empty);
+      return;
+    }
+    matches.forEach((idx, k) => {
+      const it = document.createElement("button");
+      it.type = "button";
+      it.textContent = FLOWS[idx].label;
+      it.style.cssText = "display:block;width:100%;text-align:left;font:500 12px var(--mono);" +
+        "color:var(--text);background:none;border:0;border-radius:6px;padding:6px 10px;" +
+        "cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis";
+      it.onmouseenter = () => { active = k; paintActive(); };
+      it.onmousedown = (ev) => { ev.preventDefault(); choose(idx); };
+      list.appendChild(it);
+    });
+    paintActive();
+  };
+  inp.addEventListener("focus", () => { inp.select(); refresh(); show(true); });
+  inp.addEventListener("input", () => { active = 0; refresh(); show(true); });
+  inp.addEventListener("blur", () => setTimeout(() => { show(false); syncInput(); }, 120));
+  inp.addEventListener("keydown", (ev) => {
+    if (ev.key === "ArrowDown") {
+      ev.preventDefault();
+      if (!open) { refresh(); show(true); return; }
+      active = Math.min(active + 1, matches.length - 1);
+      paintActive();
+      if (list.children[active]) list.children[active].scrollIntoView({ block: "nearest" });
+    } else if (ev.key === "ArrowUp") {
+      ev.preventDefault();
+      active = Math.max(active - 1, 0);
+      paintActive();
+      if (list.children[active]) list.children[active].scrollIntoView({ block: "nearest" });
+    } else if (ev.key === "Enter") {
+      ev.preventDefault();
+      if (matches.length) choose(matches[active]);
+    } else if (ev.key === "Escape") {
+      syncInput(); show(false); inp.blur();
+    }
+  });
+  window.addEventListener("keydown", (ev) => {
+    if (ev.key === "/" && document.activeElement !== inp &&
+        !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || "")) {
+      ev.preventDefault();
+      inp.focus();
+    }
+  });
+  syncInput();
+  wrap.appendChild(inp);
+  wrap.appendChild(list);
+  sw.appendChild(wrap);
+  sw.appendChild(count);
+}
+renderCurrent();
+// With an entity index, Business mode opens on the shelf — the noun-first
+// home screen — not on an arbitrary first endpoint.
+if (INDEX && mode === "business") { homeDiv.hidden = false; renderHome(); }
+window.addEventListener("resize", () => renderCurrent());
+</script>

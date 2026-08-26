@@ -1,0 +1,9 @@
+# Manual label overrides for the flow map (Business mode). Keys match by
+# suffix against a node's func or an effect's pos.
+overrides:
+  "(*service.Service).FindByPhone": "Поиск заказа по телефону"
+
+# Entity-shelf display names (Business mode home screen). Keys are the
+# derived entity keys; overridden names carry the • marker in the viewer.
+entities:
+  order: "Заказ"

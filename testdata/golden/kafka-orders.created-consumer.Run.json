@@ -1,0 +1,79 @@
+{
+  "schema_version": "2",
+  "module": "example.com/toyshop",
+  "entrypoint": {
+    "id": "kafka:orders.created:consumer.Run",
+    "kind": "kafka",
+    "topic": "orders.created",
+    "func": "consumer.Run",
+    "pos": "consumer/consumer.go:16",
+    "returns": "error"
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "func": "consumer.handle",
+      "package": "example.com/toyshop/consumer",
+      "pos": "consumer/consumer.go:33",
+      "kind": "step",
+      "async": false,
+      "resolution": "static"
+    },
+    {
+      "id": "n2",
+      "func": "dyn.Publish",
+      "package": "example.com/toyshop/dyn",
+      "pos": "dyn/dyn.go:8",
+      "kind": "step",
+      "async": false,
+      "resolution": "static"
+    },
+    {
+      "id": "n3",
+      "func": "decision:dyn.Publish:dyn/dyn.go:9",
+      "package": "example.com/toyshop/dyn",
+      "pos": "dyn/dyn.go:9",
+      "kind": "decision",
+      "async": false,
+      "resolution": "static",
+      "condition": "Hook != nil",
+      "gate": true
+    },
+    {
+      "id": "n4",
+      "func": "dynamic:dyn.Hook",
+      "package": "",
+      "pos": "dyn/dyn.go:10",
+      "kind": "terminal",
+      "async": false,
+      "resolution": "dynamic"
+    }
+  ],
+  "edges": [
+    {
+      "from": "entrypoint",
+      "to": "n1"
+    },
+    {
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "from": "n2",
+      "to": "n3"
+    },
+    {
+      "from": "n3",
+      "to": "n4",
+      "kind": "pass"
+    }
+  ],
+  "stats": {
+    "raw_nodes": 5,
+    "kept_nodes": 4,
+    "dropped_by_rule": {
+      "default:logging": 1,
+      "default:logging-packages": 1
+    }
+  }
+}

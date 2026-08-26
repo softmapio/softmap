@@ -1,0 +1,18 @@
+{
+  "schema_version": "2",
+  "module": "example.com/toyshop",
+  "entrypoint": {
+    "id": "http:ANY:/healthz",
+    "kind": "http",
+    "path": "/healthz",
+    "func": "example.com/toyshop.healthz",
+    "pos": "main.go:33"
+  },
+  "nodes": null,
+  "edges": null,
+  "stats": {
+    "raw_nodes": 0,
+    "kept_nodes": 0,
+    "dropped_by_rule": {}
+  }
+}
