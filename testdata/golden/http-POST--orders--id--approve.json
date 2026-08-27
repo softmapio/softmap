@@ -2,10 +2,10 @@
   "schema_version": "2",
   "module": "example.com/toyshop",
   "entrypoint": {
-    "id": "http:POST:/orders/:id/approve",
+    "id": "http:POST:/orders/{id}/approve",
     "kind": "http",
     "method": "POST",
-    "path": "/orders/:id/approve",
+    "path": "/orders/{id}/approve",
     "func": "(*handlers.Handler).ApproveOrder",
     "pos": "handlers/handler.go:60"
   },

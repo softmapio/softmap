@@ -314,8 +314,8 @@ func fieldStoreIndex(prog *ssa.Program) map[fieldKey]ssa.Value {
 				if !ok {
 					continue
 				}
-				named, ok := types.Unalias(dst.X.Type().(*types.Pointer).Elem()).(*types.Named)
-				if !ok {
+				named := fieldOwner(dst)
+				if named == nil {
 					continue
 				}
 				key := fieldKey{named.Obj(), dst.Field}
@@ -331,15 +331,34 @@ func fieldStoreIndex(prog *ssa.Program) map[fieldKey]ssa.Value {
 	return idx
 }
 
+// FieldStore is packageFieldStore for callers outside this package: the value
+// stored into the struct field fa addresses, when exactly one such store
+// exists program-wide. It resolves the field a constructor assigned once, for
+// values that reach a call site through a struct rather than a local.
+func FieldStore(fa *ssa.FieldAddr) ssa.Value { return packageFieldStore(fa) }
+
 // packageFieldStore finds the value stored into the struct field that fa
 // addresses, provided exactly one such store exists anywhere in the program
 // (the constructor / composite-literal pattern).
 func packageFieldStore(fa *ssa.FieldAddr) ssa.Value {
-	named, ok := types.Unalias(fa.X.Type().(*types.Pointer).Elem()).(*types.Named)
-	if !ok || fa.Parent() == nil {
+	named := fieldOwner(fa)
+	if named == nil || fa.Parent() == nil {
 		return nil
 	}
 	return fieldStoreIndex(fa.Parent().Prog)[fieldKey{named.Obj(), fa.Field}]
+}
+
+// fieldOwner is the named struct type a FieldAddr addresses into, or nil when
+// the operand is not a pointer to one. The pointer has to be unwrapped
+// defensively: an alias declared as `type P = *S` reaches here as *types.Alias,
+// and asserting straight to *types.Pointer would panic on valid Go.
+func fieldOwner(fa *ssa.FieldAddr) *types.Named {
+	ptr, ok := types.Unalias(fa.X.Type()).(*types.Pointer)
+	if !ok {
+		return nil
+	}
+	named, _ := types.Unalias(ptr.Elem()).(*types.Named)
+	return named
 }
 
 func allocFieldString(alloc *ssa.Alloc, field string) (string, bool) {

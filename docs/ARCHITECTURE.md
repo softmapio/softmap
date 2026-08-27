@@ -93,9 +93,21 @@ values that `internal/ssax` can chase to the declared function.
 
 Each framework is one `matcher` function registered in the `matchers` table
 (`matchers.go`): net/http (including Go 1.22 `"POST /path"` patterns), gin,
-echo, chi, gorilla/mux, sarama (`ConsumerGroup.Consume` → the handler's
-`ConsumeClaim`), segmentio/kafka-go and confluent (a function looping over
-`Reader.ReadMessage` / `Poll` *is* the entrypoint).
+echo, chi, gorilla/mux, fiber, sarama (`ConsumerGroup.Consume` → the
+handler's `ConsumeClaim`), segmentio/kafka-go and confluent (a function
+looping over `Reader.ReadMessage` / `Poll` *is* the entrypoint). The
+`Frameworks` constant next to the table is what user-facing messages print,
+so the CLI can never advertise a framework the table does not cover.
+
+Routers group routes in two shapes, and both compose prefixes: chi and
+fiber's `Route` pass a subrouter into a **callback**, walked outward by
+`callbackRegistrar`; fiber's `Group` returns a subrouter **value**, chased
+backwards through its receiver by `fiberPrefix` (including across the Router
+interface, where the receiver is the interface value rather than an
+argument). Majors of one library that differ in argument shape are one
+matcher, keyed on the version in the import path — fiber v2 takes a variadic
+handler list whose last element is the endpoint, v3 names the endpoint first
+and takes middleware after it.
 
 Route paths and topics resolve through the same constant-chasing machinery
 as everything else (see 1.5). Discovery is **best effort by design** — the
@@ -104,7 +116,15 @@ function, with suffix matching and an "ambiguous, candidates are:" error.
 
 Entrypoint IDs are stable and human-readable: `http:POST:/orders`,
 `kafka:orders.created:consumer.Run`, `func:...` as fallback; collisions get
-`#2` suffixes in source order.
+`#2` suffixes in source order. Route parameters are normalized to one
+brace-delimited form by `normalizeRoutePath`, so an endpoint gets the same id
+whichever router registered it (`:id` and `*` become `{id}` / `{*}`; chi,
+gorilla and net/http already write braces). Only the matchers of colon-syntax
+routers — gin, echo, fiber — may call it: to the brace-syntax routers a
+segment starting with `:` or `*` is an ordinary literal, and rewriting it
+there would rename a real route and could collide it with that router's own
+`{id}` route. `Resolve` normalizes what the user typed too, and tries the raw
+spelling as well, so an id written either way resolves.
 
 ### 1.3 graph.Build (`internal/graph/build.go`)
 
@@ -349,6 +369,12 @@ the HTML viewer, whose Business mode opens on the entity shelf.
   import paths and signatures as the real libraries, wired via `replace` —
   `go test` is hermetic and loads in ~1s. If you change what a matcher keys
   on, update the corresponding stub.
+- A framework with registration shapes of its own gets its **own fixture
+  module** rather than more routes in toyshop: `testdata/fibershop` covers
+  fiber (both majors, nested groups, `Route` callbacks, wildcards, and
+  middleware that must not be mistaken for an endpoint). Keeping it separate
+  means adding a framework never churns toyshop's goldens, and the
+  assertions read as a spec for that one router.
 - Golden files (`testdata/golden/*`) pin the emitted JSON byte-for-byte
   (refresh deliberately: `go test ./internal/output -update`), and
   `assertFlowContent` pins the success criteria (noise gone, both interface
@@ -376,9 +402,13 @@ receiver type, method name), pull the route/topic/queue from arguments via
 `handlerFunc` (or `ssax.ConcreteMethod` for interface-shaped handlers), and
 return an `Entrypoint`. For poll-loop style consumers (kafka-go, most AMQP
 clients) the *enclosing function* is the entrypoint — see
-`matchKafkaGoConsumer`. Add a stub module under `testdata/stubs/` with just
-the signatures you match on, use it in the fixture, and add a discovery
-test case.
+`matchKafkaGoConsumer`. If the router groups routes, compose the prefix with
+`callbackRegistrar` (subrouter passed into a callback) or `fiberPrefix`
+(subrouter returned as a value). Add a stub module under `testdata/stubs/`
+with just the signatures you match on, give the framework its own fixture
+module if its registration shapes differ from toyshop's, and add a discovery
+test case. Add the framework to the `Frameworks` constant so the CLI's
+zero-discovery hint stays truthful.
 
 **New effect library (a message queue, a mail API, gRPC clients, an
 external HTTP API SDK) → one detector.** Add a `detector` to the table in

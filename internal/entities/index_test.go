@@ -115,8 +115,8 @@ func assertIndex(t *testing.T, idx *entities.Index) {
 	if got := accessOf(order, "http:POST:/orders"); got != "creates|publishes orders.created" {
 		t.Errorf("order access for POST /orders = %q, want creates|publishes orders.created", got)
 	}
-	if got := accessOf(order, "http:GET:/orders/:id"); got != "reads" {
-		t.Errorf("order access for GET /orders/:id = %q, want reads", got)
+	if got := accessOf(order, "http:GET:/orders/{id}"); got != "reads" {
+		t.Errorf("order access for GET /orders/{id} = %q, want reads", got)
 	}
 
 	// product: both access kinds from SQL verbs.

@@ -42,11 +42,13 @@ func TestDiscoverToyshop(t *testing.T) {
 		kind     string
 		funcPart string
 	}{
+		// Route parameters are normalized to one brace form whatever syntax
+		// the registering router uses: these three are gin and echo ":id".
 		{"http:POST:/orders", "http", "CreateOrder"},
-		{"http:POST:/orders/:id/approve", "http", "ApproveOrder"},
-		{"http:POST:/reports/:id/callback", "http", "ReportCallback"},
+		{"http:POST:/orders/{id}/approve", "http", "ApproveOrder"},
+		{"http:POST:/reports/{id}/callback", "http", "ReportCallback"},
 		{"grpc:Orders/GetOrder", "grpc", "grpcserver.Server).GetOrder"},
-		{"http:GET:/orders/:id", "http", "GetOrder"},
+		{"http:GET:/orders/{id}", "http", "GetOrder"},
 		{"http:ANY:/healthz", "http", "healthz"},
 		{"kafka:orders.created:consumer.Run", "kafka", "consumer.Run"},
 		// chi group prefix: registered as Post("/login") inside Route("/auth").

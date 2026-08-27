@@ -2,10 +2,10 @@
   "schema_version": "2",
   "module": "example.com/toyshop",
   "entrypoint": {
-    "id": "http:GET:/orders/:id",
+    "id": "http:GET:/orders/{id}",
     "kind": "http",
     "method": "GET",
-    "path": "/orders/:id",
+    "path": "/orders/{id}",
     "func": "(*handlers.Handler).GetOrder",
     "pos": "handlers/handler.go:69",
     "success": "HTTP 200",

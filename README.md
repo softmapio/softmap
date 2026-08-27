@@ -46,13 +46,13 @@ open gitea-map/index.html
 
 On this machine (M-series laptop) that scan loads 362 packages, builds a VTA
 call graph, and writes the map in well under a minute. On a repo that uses
-net/http, chi, gin, echo, or gorilla/mux directly, plain `softmap scan <path>`
+net/http, chi, gin, echo, fiber, or gorilla/mux directly, plain `softmap scan <path>`
 lists what it found:
 
 ```
 ID                                 FUNC                               POS
 grpc:Orders/GetOrder               (grpcserver.Server).GetOrder       grpcserver/server.go:28
-http:GET:/orders/:id               (*handlers.Handler).GetOrder       handlers/handler.go:69
+http:GET:/orders/{id}              (*handlers.Handler).GetOrder       handlers/handler.go:69
 http:POST:/auth/login              (*chiapi.Handler).Login            chiapi/handler.go:53
 kafka:orders.created:consumer.Run  consumer.Run                       consumer/consumer.go:16
 ...
@@ -142,10 +142,11 @@ softmap builds on the Go toolchain's own analysis stack: `go/packages` +
 - **Go only**, for now. Deep static analysis is per-language; a manifest
   format for non-Go services in a polyglot map is a possible later step.
 - **Discovery is best-effort.** It covers net/http (incl. Go 1.22 route
-  patterns), chi, gin, echo, gorilla/mux, protoc-generated gRPC
-  registration, and common Kafka consumers. Codebases that wrap their router
-  (like Gitea) need `--entrypoint func:<pkg>.<Name>` per flow — and `--all`
-  finds nothing there, since it maps only discovered entrypoints.
+  patterns), chi, gin, echo, gorilla/mux, fiber (v2 and v3),
+  protoc-generated gRPC registration, and common Kafka consumers. Codebases
+  that wrap their router (like Gitea) need `--entrypoint func:<pkg>.<Name>`
+  per flow — and `--all` finds nothing there, since it maps only discovered
+  entrypoints. See [My router isn't detected](#my-router-isnt-detected).
 - **Your repo must compile.** Analysis loads and type-checks the target;
   broken builds or unreachable private modules fail the scan. The softmap
   binary itself must be built with a Go toolchain at least as new as the
@@ -160,6 +161,31 @@ softmap builds on the Go toolchain's own analysis stack: `go/packages` +
 - **Filter rules ship embedded.** `softmap rules --defaults` prints them;
   `--no-filter` disables them. A flag to layer your own rules file on top is
   planned but not implemented yet.
+
+## My router isn't detected
+
+`phase=discover ... entrypoints=0` means route registration wasn't
+recognized — most often because the router is registered through a wrapper
+of your own (`s.router.GET(...)` inside a helper) rather than called
+directly. Nothing is wrong with your repo, and every map still works: point
+softmap at a handler and it builds that flow.
+
+```sh
+softmap scan . --entrypoint "func:(*api.Handler).CreateOrder" --html -o out
+```
+
+The name is the handler's qualified Go name, and any unambiguous suffix of
+it is enough (`func:api.Handler).CreateOrder`, or `func:consumer.Run` for a
+plain function). A zero-discovery run prints request-shaped names taken from
+your own code, so you can copy the form from there. Route paths in generated
+ids use one syntax whatever your router writes — `:id`, `{id}` and `*` all
+appear as `{id}` / `{*}` — and `--entrypoint` accepts either spelling.
+
+If your router is a common one, please [open an
+issue](https://github.com/softmapio/softmap/issues/new/choose) with the
+registration snippet (the `app.Get("/x", h.X)` line and how the router value
+is built). Adding a framework is a matcher plus a fixture; fiber support
+started as exactly that report.
 
 ## FAQ
 

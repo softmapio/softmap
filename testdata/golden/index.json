@@ -16,11 +16,11 @@
       "path": "/healthz"
     },
     {
-      "id": "http:GET:/orders/:id",
-      "file": "http-GET--orders--id.json",
+      "id": "http:GET:/orders/{id}",
+      "file": "http-GET--orders--id-.json",
       "title": "Get order",
       "method": "GET",
-      "path": "/orders/:id"
+      "path": "/orders/{id}"
     },
     {
       "id": "http:GET:/products",
@@ -44,11 +44,11 @@
       "path": "/orders"
     },
     {
-      "id": "http:POST:/orders/:id/approve",
-      "file": "http-POST--orders--id-approve.json",
+      "id": "http:POST:/orders/{id}/approve",
+      "file": "http-POST--orders--id--approve.json",
       "title": "Approve order",
       "method": "POST",
-      "path": "/orders/:id/approve"
+      "path": "/orders/{id}/approve"
     },
     {
       "id": "http:POST:/products",
@@ -58,11 +58,11 @@
       "path": "/products"
     },
     {
-      "id": "http:POST:/reports/:id/callback",
-      "file": "http-POST--reports--id-callback.json",
+      "id": "http:POST:/reports/{id}/callback",
+      "file": "http-POST--reports--id--callback.json",
       "title": "Report callback",
       "method": "POST",
-      "path": "/reports/:id/callback"
+      "path": "/reports/{id}/callback"
     },
     {
       "id": "kafka:orders.created:consumer.Run",
@@ -87,7 +87,7 @@
           ]
         },
         {
-          "id": "http:POST:/orders/:id/approve",
+          "id": "http:POST:/orders/{id}/approve",
           "title": "Approve order",
           "access": [
             "creates"
@@ -112,7 +112,7 @@
           ]
         },
         {
-          "id": "http:GET:/orders/:id",
+          "id": "http:GET:/orders/{id}",
           "title": "Get order",
           "access": [
             "reads"
@@ -134,7 +134,7 @@
           ]
         },
         {
-          "id": "http:POST:/orders/:id/approve",
+          "id": "http:POST:/orders/{id}/approve",
           "title": "Approve order",
           "access": [
             "reads",
@@ -142,7 +142,7 @@
           ]
         },
         {
-          "id": "http:POST:/reports/:id/callback",
+          "id": "http:POST:/reports/{id}/callback",
           "title": "Report callback",
           "access": [
             "reads"
@@ -185,7 +185,7 @@
       "name": "Report",
       "flows": [
         {
-          "id": "http:POST:/reports/:id/callback",
+          "id": "http:POST:/reports/{id}/callback",
           "title": "Report callback"
         }
       ]

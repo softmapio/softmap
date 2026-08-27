@@ -1,8 +1,8 @@
 // Package entrypoints discovers flow entrypoints: HTTP handler registrations
-// (net/http, gin, echo, chi, gorilla/mux) and Kafka consumer handlers
-// (segmentio/kafka-go, sarama, confluent). Discovery is best effort by
-// design; Resolve implements the --entrypoint escape hatch for anything
-// discovery misses.
+// (net/http, gin, echo, chi, gorilla/mux, fiber), gRPC service registration
+// and Kafka consumer handlers (segmentio/kafka-go, sarama, confluent).
+// Discovery is best effort by design; Resolve implements the --entrypoint
+// escape hatch for anything discovery misses.
 package entrypoints
 
 import (
@@ -41,11 +41,19 @@ var matchers = []matcher{
 	matchEcho,
 	matchChi,
 	matchGorilla,
+	matchFiber,
 	matchGRPCRegister,
 	matchSaramaConsumer,
 	matchKafkaGoConsumer,
 	matchConfluentConsumer,
 }
+
+// Frameworks lists, for user-facing messages, what the matchers above
+// recognize. Keeping it next to the table is what stops the CLI from
+// advertising a framework discovery does not actually cover.
+const Frameworks = "net/http (incl. Go 1.22 method patterns), chi, gin, echo, " +
+	"gorilla/mux, fiber (v2, v3), protoc-generated gRPC registration, and Kafka " +
+	"consumers (segmentio/kafka-go, sarama, confluent)"
 
 // Discover scans all module-local, non-generated functions for registration
 // call sites. Results are deterministic: sorted by ID, duplicate handler
@@ -127,12 +135,34 @@ func assignIDs(p *loader.Program, eps []Entrypoint) {
 	}
 }
 
+// normalizeID rewrites the path of an http:METHOD:/path id into the parameter
+// syntax discovery emits, so an id written the way its own router spells
+// route parameters ("/orders/:id") still resolves.
+func normalizeID(id string) string {
+	rest, ok := strings.CutPrefix(id, "http:")
+	if !ok {
+		return id
+	}
+	method, path, ok := strings.Cut(rest, ":")
+	if !ok {
+		return id
+	}
+	// assignIDs appends "#2", "#3"... to colliding ids; that suffix is not
+	// part of the route and must not be normalized with it.
+	suffix := ""
+	if i := strings.LastIndex(path, "#"); i >= 0 {
+		path, suffix = path[:i], path[i:]
+	}
+	return "http:" + method + ":" + normalizeRoutePath(path) + suffix
+}
+
 // Resolve finds the entrypoint for a user-supplied --entrypoint value:
 // either a discovered ID or func:<qualified-name> (suffix match allowed) for
 // functions discovery missed.
 func Resolve(p *loader.Program, discovered []Entrypoint, id string) (*Entrypoint, error) {
+	normalized := normalizeID(id)
 	for i := range discovered {
-		if discovered[i].ID == id {
+		if discovered[i].ID == id || discovered[i].ID == normalized {
 			return &discovered[i], nil
 		}
 	}
@@ -140,6 +170,12 @@ func Resolve(p *loader.Program, discovered []Entrypoint, id string) (*Entrypoint
 	var candidates []*ssa.Function
 	for fn := range ssautil.AllFunctions(p.Prog) {
 		if !p.InModule(fn) || fn.Blocks == nil {
+			continue
+		}
+		// A generic function appears once per instantiation, and every
+		// instance displays as its origin — counting them all would report a
+		// generic handler as ambiguous with itself.
+		if orig := fn.Origin(); orig != nil && orig != fn {
 			continue
 		}
 		full := ssax.FuncDisplayName(fn)

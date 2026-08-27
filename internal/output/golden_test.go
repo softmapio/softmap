@@ -122,7 +122,7 @@ func TestGolden(t *testing.T) {
 			check("http-POST--orders.raw.json", rawJSON)
 			assertFlowContent(t, jsonOut)
 		}
-		if ep.ID == "http:POST:/orders/:id/approve" {
+		if ep.ID == "http:POST:/orders/{id}/approve" {
 			assertGuardContent(t, jsonOut)
 		}
 	}

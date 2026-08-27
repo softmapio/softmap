@@ -3,8 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"go/types"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -90,7 +92,8 @@ func scan(opts *scanOptions) error {
 	eps := entrypoints.Discover(p)
 	progress("discover", time.Since(phase), "entrypoints=%d", len(eps))
 	if len(eps) == 0 && opts.entrypoint == "" {
-		warn("0 entrypoints discovered; point at a handler with --entrypoint func:<pkg>.<Name>")
+		warn("0 entrypoints discovered")
+		fmt.Fprint(os.Stderr, noEntrypointsHint(p, opts.dir))
 	}
 
 	if opts.entrypoint == "" && !opts.all {
@@ -106,7 +109,12 @@ func scan(opts *scanOptions) error {
 			targets = append(targets, &eps[i])
 		}
 		if len(targets) == 0 {
-			return fmt.Errorf("--all: no entrypoints discovered")
+			if opts.entrypoint != "" {
+				// The hint above was suppressed because --entrypoint was
+				// given; --all ignores it, which is the actual mistake here.
+				return fmt.Errorf("--all maps every discovered entrypoint and none were found; drop --all to map just %s", opts.entrypoint)
+			}
+			return fmt.Errorf("--all maps every discovered entrypoint and none were found; map one handler with --entrypoint instead (see above)")
 		}
 	} else {
 		ep, err := entrypoints.Resolve(p, eps, opts.entrypoint)
@@ -271,6 +279,160 @@ func listEntrypoints(p *loader.Program, eps []entrypoints.Entrypoint) error {
 		fmt.Fprintf(w, "%s\t%s\t%s\n", ep.ID, ssax.TrimModule(ep.FuncName(), p.Module), p.Position(ep.Pos))
 	}
 	return w.Flush()
+}
+
+// handlerPkg matches a path segment of the packages that conventionally hold
+// HTTP handlers, so the hint below can point at a plausible entrypoint from
+// the scanned repo rather than a placeholder.
+var handlerPkg = regexp.MustCompile(`(^|/)(handlers?|api|rest|http|transport|controllers?|endpoints?|routes?|routers?|server|web)(/|$)`)
+
+// boilerplateMethod names methods that satisfy an interface rather than serve
+// a request. Suggesting one of these as an entrypoint would teach the reader
+// the wrong thing, so they are never used as the example.
+var boilerplateMethod = map[string]bool{
+	"Close": true, "String": true, "Error": true, "Read": true, "Write": true,
+	"Len": true, "Less": true, "Swap": true, "Reset": true, "Flush": true,
+	"MarshalJSON": true, "UnmarshalJSON": true, "Validate": true, "Run": true,
+	"ServeHTTP": true, "Handle": true, "Next": true, "Use": true,
+}
+
+// noEntrypointsHint explains a run that discovered nothing: what registration
+// shapes are recognized, and how to map a handler by name when the router is
+// not one of them. A router registered through the project's own wrapper is
+// invisible to discovery, which is the common cause.
+func noEntrypointsHint(p *loader.Program, dir string) string {
+	var b strings.Builder
+	b.WriteString("  discovery recognizes " + entrypoints.Frameworks + ".\n")
+	names := exampleHandlerNames(p)
+	if len(names) == 0 {
+		// Nothing here takes a request at all, so there is no router to have
+		// missed: this is a library or a worker. Don't claim otherwise, and
+		// don't ask for a bug report.
+		b.WriteString("  Nothing in this module takes a request-shaped argument, so it may\n" +
+			"  have no HTTP surface. Any function can still be mapped directly:\n" +
+			"    softmap scan " + dir + " --entrypoint \"func:<pkg>.<Name>\"\n")
+		return b.String()
+	}
+	b.WriteString("  A router registered through your own wrapper is not seen. Map a\n" +
+		"  handler by name instead — any unambiguous suffix works:\n" +
+		"    softmap scan " + dir + " --entrypoint \"func:<name>\"\n" +
+		"  where <name> is the handler's qualified name — in this repo\n" +
+		"  request-shaped functions are named like:\n")
+	for _, n := range names {
+		b.WriteString("    " + n + "\n")
+	}
+	b.WriteString("  If your router is a common one, please report it so discovery can\n" +
+		"  cover it: https://github.com/softmapio/softmap/issues/new/choose\n")
+	return b.String()
+}
+
+// exampleHandlerNames returns up to two request-shaped functions from the
+// scanned module — one plain function and one method — to show what a
+// qualified name looks like there. Their job is to teach the naming form
+// (which is what people get wrong), not to identify the endpoint the reader
+// wants, so the hint presents them as examples of shape rather than as the
+// answer. Candidates must look like a handler (see handlerLike); a
+// handler-ish package only breaks ties, because package naming alone picks
+// router plumbing as often as request code. Ties break lexicographically, so
+// the hint is identical between runs.
+func exampleHandlerNames(p *loader.Program) []string {
+	var fnBest, fnAny, mBest, mAny *candidate
+	pick := func(cur *candidate, c candidate) *candidate {
+		if cur == nil || c.short < cur.short {
+			return &c
+		}
+		return cur
+	}
+	for fn := range ssautil.AllFunctions(p.Prog) {
+		if !p.InModule(fn) || p.FuncClass(fn) != loader.Normal || fn.Blocks == nil {
+			continue
+		}
+		// Unexported handlers are the norm in a hand-rolled router
+		// (func (s *server) handleGetUser), and --entrypoint resolves them
+		// like any other name, so they belong in the examples.
+		if fn.Object() == nil || fn.Pkg == nil {
+			continue
+		}
+		if boilerplateMethod[fn.Name()] || !handlerLike(fn) {
+			continue
+		}
+		full := ssax.FuncDisplayName(fn)
+		c := candidate{short: ssax.TrimModule(full, p.Module), full: full}
+		preferred := handlerPkg.MatchString(fn.Pkg.Pkg.Path())
+		if fn.Signature.Recv() != nil {
+			mAny = pick(mAny, c)
+			if preferred {
+				mBest = pick(mBest, c)
+			}
+			continue
+		}
+		fnAny = pick(fnAny, c)
+		if preferred {
+			fnBest = pick(fnBest, c)
+		}
+	}
+	var out []string
+	for _, pair := range [][2]*candidate{{fnBest, fnAny}, {mBest, mAny}} {
+		c := pair[0]
+		if c == nil {
+			c = pair[1]
+		}
+		if c != nil {
+			out = append(out, resolvableName(p, *c))
+		}
+	}
+	return out
+}
+
+// candidate is one example name in both spellings: module-trimmed for
+// readability, fully qualified as the unambiguous fallback.
+type candidate struct{ short, full string }
+
+// resolvableName prefers the short name but falls back to the qualified one
+// when the short form matches more than one function — the hint tells the
+// reader to paste it, so a name that would come back "ambiguous" is a broken
+// promise.
+func resolvableName(p *loader.Program, c candidate) string {
+	if _, err := entrypoints.Resolve(p, nil, "func:"+c.short); err == nil {
+		return c.short
+	}
+	return c.full
+}
+
+// handlerLike reports whether fn's signature has the shape of a request
+// handler: net/http's (ResponseWriter, *Request), or the single request-context
+// parameter every router passes — gin's *Context, echo's Context, fiber's
+// *Ctx, and the per-project context types that hand-rolled wrappers define. A
+// plain stdlib context.Context does not count; almost every function takes one.
+func handlerLike(fn *ssa.Function) bool {
+	params := fn.Signature.Params()
+	switch params.Len() {
+	case 1:
+		named := namedType(params.At(0).Type())
+		if named == nil {
+			return false
+		}
+		if pkg := named.Obj().Pkg(); pkg != nil && pkg.Path() == "context" {
+			return false
+		}
+		name := named.Obj().Name()
+		return name == "Ctx" || strings.HasSuffix(name, "Context")
+	case 2:
+		first, second := namedType(params.At(0).Type()), namedType(params.At(1).Type())
+		return first != nil && second != nil &&
+			first.Obj().Name() == "ResponseWriter" && second.Obj().Name() == "Request"
+	}
+	return false
+}
+
+// namedType unwraps a pointer to reach the named type underneath.
+func namedType(t types.Type) *types.Named {
+	t = types.Unalias(t)
+	if ptr, ok := t.(*types.Pointer); ok {
+		t = types.Unalias(ptr.Elem())
+	}
+	named, _ := t.(*types.Named)
+	return named
 }
 
 // progress prints a phase-completion line with counts and elapsed time.
