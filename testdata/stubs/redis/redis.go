@@ -1,5 +1,5 @@
 // Package redis is a minimal stub of github.com/redis/go-redis/v9 carrying
-// only the shapes devscan's effect detector keys on (internal/effects):
+// only the shapes softmap's effect detector keys on (internal/effects):
 // package path + a Client-like receiver with exported command methods.
 package redis
 

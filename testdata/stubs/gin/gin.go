@@ -1,5 +1,5 @@
 // Package gin is a minimal stub of github.com/gin-gonic/gin carrying only
-// the signatures devscan's entrypoint matchers key on (see
+// the signatures softmap's entrypoint matchers key on (see
 // internal/entrypoints). Bodies are empty; the fixture is never executed.
 package gin
 

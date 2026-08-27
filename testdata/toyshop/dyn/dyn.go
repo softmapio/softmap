@@ -1,5 +1,5 @@
 // Package dyn holds a function-value hook that is never assigned inside the
-// module: calling it is statically unresolvable, so devscan must emit a
+// module: calling it is statically unresolvable, so softmap must emit a
 // terminal node tagged "dynamic" instead of silently dropping the call.
 package dyn
 

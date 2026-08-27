@@ -1,4 +1,4 @@
-// Command toyshop is the devscan test fixture: a toy service with an HTTP
+// Command toyshop is the softmap test fixture: a toy service with an HTTP
 // handler -> service -> repository chain that touches SQL, Redis, and Kafka,
 // plus deliberate noise (logging, metrics, config, a trivial wrapper, an
 // interface with two implementations, a generated-style file, and an

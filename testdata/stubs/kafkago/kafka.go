@@ -1,5 +1,5 @@
 // Package kafka is a minimal stub of github.com/segmentio/kafka-go carrying
-// only the signatures devscan's effect detectors and entrypoint matchers key
+// only the signatures softmap's effect detectors and entrypoint matchers key
 // on (internal/effects, internal/entrypoints).
 package kafka
 

@@ -1,5 +1,5 @@
 // Package events produces Kafka messages; the writer's topic comes from a
-// package-level constant through the constructor, exercising devscan's
+// package-level constant through the constructor, exercising softmap's
 // struct-field topic resolution.
 package events
 
