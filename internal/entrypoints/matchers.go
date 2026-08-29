@@ -262,50 +262,262 @@ func referrersOf(v ssa.Value) []ssa.Instruction {
 	return nil
 }
 
-// matchGorilla handles (*mux.Router).Handle(Func); the HTTP method is pulled
-// from a chained .Methods(...) call on the returned *Route when present.
+const gorillaPkg = "github.com/gorilla/mux"
+
+// matchGorilla handles the two ways gorilla/mux attaches a handler:
+// (*Router).Handle(Func)(path, h), and the route-builder chain ending in
+// (*Route).Handler(Func) - r.Methods("GET").Path("/x").HandlerFunc(h). The
+// path composes from the receiver chain: builder Path/PathPrefix segments
+// plus every enclosing PathPrefix().Subrouter() prefix, following the router
+// value the same way fiber's groups are followed (through locals, struct
+// fields, and single-caller helper parameters). Methods can sit anywhere on
+// the chain, before or after the handler call.
 func matchGorilla(p *loader.Program, _ *ssa.Function, site ssa.CallInstruction, info *ssax.CalleeInfo) []Entrypoint {
-	if info.Pkg != "github.com/gorilla/mux" || info.Type != "Router" {
+	if info.Pkg != gorillaPkg {
 		return nil
 	}
-	if info.Name != "Handle" && info.Name != "HandleFunc" {
-		return nil
-	}
+	var pathArg, handlerArg ssa.Value
 	args := site.Common().Args[info.ArgOffset:]
-	if len(args) < 2 {
+	switch {
+	case info.Type == "Router" && (info.Name == "Handle" || info.Name == "HandleFunc"):
+		if len(args) < 2 {
+			return nil
+		}
+		pathArg, handlerArg = args[0], args[1]
+	case info.Type == "Route" && (info.Name == "Handler" || info.Name == "HandlerFunc"):
+		if len(args) < 1 {
+			return nil
+		}
+		handlerArg = args[0]
+	default:
 		return nil
 	}
-	path, _ := ssax.ConstString(args[0])
-	fn := handlerFunc(p, args[1])
+	fn := handlerFunc(p, handlerArg)
 	if fn == nil {
-		fn = ssax.ConcreteMethod(p.Prog, args[1], "ServeHTTP")
+		fn = ssax.ConcreteMethod(p.Prog, handlerArg, "ServeHTTP")
 	}
-	method := ""
-	if call, ok := site.(*ssa.Call); ok {
-		method = gorillaChainedMethods(call)
+	path := ""
+	if pathArg != nil {
+		own, ok := ssax.ConstString(pathArg)
+		if !ok {
+			// A dynamic path: report the handler without inventing a route
+			// out of the prefixes alone.
+			return httpEntrypoint("", "", fn)
+		}
+		path = own
 	}
-	return httpEntrypoint(method, path, fn)
+	prefix, methods, resolved := gorillaChain(receiverOf(site, info), 0)
+	if forward := gorillaForwardMethods(site); forward != "" {
+		methods = forward
+	}
+	if !resolved && pathArg == nil {
+		// The route's own Path lives in the chain and part of it did not
+		// resolve; claiming the resolved fragment would invent a route.
+		return httpEntrypoint(methods, "", fn)
+	}
+	if !resolved {
+		// The prefix is unknown but the registration's own path is constant:
+		// claim the bare path, the same degradation chi and fiber use when a
+		// group's provenance cannot be traced.
+		prefix = ""
+	}
+	if pathArg == nil && prefix == "" {
+		// A bare chain with no resolvable path anywhere: no route to claim.
+		return httpEntrypoint(methods, "", fn)
+	}
+	return httpEntrypoint(methods, prefix+path, fn)
 }
 
-func gorillaChainedMethods(route ssa.Value) string {
-	refs := route.Referrers()
-	if refs == nil {
+// gorillaPassthrough are the builder links that hand back the same router or
+// route and contribute nothing to the path.
+var gorillaPassthrough = map[string]bool{
+	"Subrouter": true, "NewRoute": true, "Name": true, "Queries": true,
+	"Host": true, "Schemes": true, "Headers": true, "HeadersRegexp": true,
+	"MatcherFunc": true, "BuildVarsFunc": true, "StrictSlash": true,
+	"SkipClean": true, "UseEncodedPath": true,
+	"Handle": true, "HandleFunc": true, "Handler": true, "HandlerFunc": true,
+}
+
+// gorillaChain walks a Router or Route value backwards, collecting the path
+// the chain contributes (builder Path/PathPrefix plus subrouter prefixes) and
+// any Methods restriction on the way. resolved is false when part of the
+// chain could not be followed - a dynamic Path segment, an unknown builder
+// link, or a walk that ran out of budget - so the caller never claims a
+// truncated route as the whole one. A clean stop (NewRouter, a non-gorilla
+// origin, a helper parameter with several callers) keeps resolved true: the
+// chain simply contributes nothing beyond that point.
+func gorillaChain(v ssa.Value, depth int) (path, methods string, resolved bool) {
+	for v != nil {
+		if depth >= 24 {
+			return "", methods, false
+		}
+		switch r := v.(type) {
+		case *ssa.MakeInterface:
+			v = r.X
+		case *ssa.ChangeInterface:
+			v = r.X
+		case *ssa.UnOp:
+			if stored := ssax.SingleStore(r.X); stored != nil {
+				v = stored
+				break
+			}
+			if fa, ok := r.X.(*ssa.FieldAddr); ok {
+				v = ssax.FieldStore(fa)
+				break
+			}
+			if fv, ok := r.X.(*ssa.FreeVar); ok {
+				// A subrouter captured by a closure: the captured address
+				// lives in the enclosing function, where its single store is
+				// visible.
+				if b := freeVarBinding(fv); b != nil {
+					if stored := ssax.SingleStore(b); stored != nil {
+						v = stored
+						break
+					}
+				}
+			}
+			return path, methods, true
+		case *ssa.Call:
+			info := ssax.Callee(r)
+			if info == nil || info.Pkg != gorillaPkg {
+				return path, methods, true
+			}
+			args := r.Common().Args[info.ArgOffset:]
+			switch {
+			case info.Name == "Path" || info.Name == "PathPrefix":
+				if len(args) == 0 {
+					return "", methods, false
+				}
+				s, ok := ssax.ConstString(args[0])
+				if !ok {
+					// A dynamic segment poisons the whole chain: whatever
+					// was collected after it is not the route.
+					return "", methods, false
+				}
+				path = s + path
+			case info.Name == "Methods":
+				if methods == "" && len(args) > 0 {
+					if ms, ok := ssax.SliceStrings(args[0]); ok {
+						methods = strings.Join(ms, ",")
+					}
+				}
+			case info.Name == "NewRouter":
+				return path, methods, true
+			case gorillaPassthrough[info.Name]:
+				// Contributes nothing to the path.
+			default:
+				// An unknown gorilla call: its contribution is unknown, so
+				// the collected fragment must not be claimed as the route.
+				return "", methods, false
+			}
+			v = receiverOf(r, info)
+		case *ssa.Parameter:
+			callers := callersOf(r.Parent())
+			if len(callers) != 1 {
+				return path, methods, true
+			}
+			i, callArgs := paramIndex(r.Parent(), r), callers[0].Common().Args
+			if i < 0 || i >= len(callArgs) {
+				return path, methods, true
+			}
+			v = callArgs[i]
+		default:
+			return path, methods, true
+		}
+		depth++
+	}
+	return path, methods, true
+}
+
+// freeVarBinding maps a closure's free variable back to the value bound at
+// the closure's construction, when the closure is made in exactly one place.
+func freeVarBinding(fv *ssa.FreeVar) ssa.Value {
+	fn := fv.Parent()
+	if fn == nil {
+		return nil
+	}
+	idx := -1
+	for i, f := range fn.FreeVars {
+		if f == fv {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return nil
+	}
+	var binding ssa.Value
+	for _, instr := range referrersOf(fn) {
+		mc, ok := instr.(*ssa.MakeClosure)
+		if !ok || idx >= len(mc.Bindings) {
+			continue
+		}
+		if binding != nil {
+			return nil // closed over in two places: no single binding
+		}
+		binding = mc.Bindings[idx]
+	}
+	return binding
+}
+
+// gorillaForwardMethods finds a Methods restriction chained AFTER the handler
+// call - r.HandleFunc(...).Name("x").Methods("GET") - following the returned
+// *Route through any builder links in between, and through a route stored in
+// a local and restricted in a separate statement. It wins over a restriction
+// collected earlier in the backward chain because it is the closest to the
+// registration.
+func gorillaForwardMethods(site ssa.CallInstruction) string {
+	call, ok := site.(*ssa.Call)
+	if !ok {
 		return ""
 	}
-	for _, instr := range *refs {
-		call, ok := instr.(*ssa.Call)
-		if !ok {
-			continue
-		}
-		ci := ssax.Callee(call)
-		if ci == nil || ci.Pkg != "github.com/gorilla/mux" || ci.Name != "Methods" {
-			continue
-		}
-		if methods, ok := ssax.SliceStrings(call.Common().Args[ci.ArgOffset]); ok {
-			return strings.Join(methods, ",")
+	frontier := []ssa.Value{call}
+	if info := ssax.Callee(call); info != nil && info.Type == "Route" {
+		// A Route receiver is the same route the handler was attached to, so
+		// its sibling calls belong to this registration: rt := r.Path("/x");
+		// rt.Methods("GET"); rt.HandlerFunc(h). A Router receiver must NOT
+		// be scanned - its other referrers are other routes.
+		if recv := receiverOf(call, info); recv != nil {
+			frontier = append(frontier, recv)
 		}
 	}
+	for depth := 0; depth < 6 && len(frontier) > 0; depth++ {
+		var next []ssa.Value
+		for _, v := range frontier {
+			for _, instr := range referrersOf(v) {
+				c, ok := instr.(*ssa.Call)
+				if !ok {
+					continue
+				}
+				ci := ssax.Callee(c)
+				if ci == nil || ci.Pkg != gorillaPkg {
+					continue
+				}
+				if ci.Name == "Methods" {
+					if ms, ok := ssax.SliceStrings(c.Common().Args[ci.ArgOffset]); ok {
+						return strings.Join(ms, ",")
+					}
+					continue
+				}
+				// Only Route-to-Route links continue the same route forward;
+				// Subrouter starts a different router entirely.
+				if gorillaRouteLink[ci.Name] {
+					next = append(next, c)
+				}
+			}
+		}
+		frontier = next
+	}
 	return ""
+}
+
+// gorillaRouteLink are the (*Route) builder methods that return the SAME
+// route, so a forward walk over them stays on this registration.
+var gorillaRouteLink = map[string]bool{
+	"Name": true, "Queries": true, "Host": true, "Schemes": true,
+	"Headers": true, "HeadersRegexp": true, "MatcherFunc": true,
+	"BuildVarsFunc": true, "Path": true, "PathPrefix": true,
+	"Handler": true, "HandlerFunc": true,
 }
 
 // fiberPkg is the gofiber import path with its major-version suffix stripped,

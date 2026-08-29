@@ -101,10 +101,14 @@ so the CLI can never advertise a framework the table does not cover.
 
 Routers group routes in two shapes, and both compose prefixes: chi and
 fiber's `Route` pass a subrouter into a **callback**, walked outward by
-`callbackRegistrar`; fiber's `Group` returns a subrouter **value**, chased
-backwards through its receiver by `fiberPrefix` (including across the Router
-interface, where the receiver is the interface value rather than an
-argument). Majors of one library that differ in argument shape are one
+`callbackRegistrar`; fiber's `Group` and gorilla's
+`PathPrefix().Subrouter()` return a subrouter **value**, chased backwards
+through its receiver by `fiberPrefix` / `gorillaChain` (including across
+interfaces, struct fields a constructor assigned once, and helper parameters
+traceable to exactly one call site). gorilla's route-builder chains
+(`r.Methods("GET").Path("/x").HandlerFunc(h)`) resolve through the same
+backward walk, with a forward hop for `.Methods(...)` chained after the
+handler. Majors of one library that differ in argument shape are one
 matcher, keyed on the version in the import path - fiber v2 takes a variadic
 handler list whose last element is the endpoint, v3 names the endpoint first
 and takes middleware after it.
