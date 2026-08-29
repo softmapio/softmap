@@ -4,7 +4,7 @@ package metrics
 
 type Counter struct{}
 
-func (c *Counter) Inc()            {}
+func (c *Counter) Inc()              {}
 func (c *Counter) Add(delta float64) {}
 
 var (

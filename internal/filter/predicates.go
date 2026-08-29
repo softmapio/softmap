@@ -17,19 +17,19 @@ import (
 type Predicate func(n *graph.Node, p *loader.Program) bool
 
 var predicates = map[string]Predicate{
-	"logger-method":     IsLoggerMethod,
-	"logger-package":    IsLoggerPackage,
-	"logger-factory":    IsLoggerFactory,
-	"metrics-tracing":   IsMetricsTracing,
-	"config-reader":     IsConfigReader,
-	"validation-helper": IsValidationHelper,
-	"trivial-wrapper":   IsTrivialWrapper,
-	"respond-helper":    IsRespondHelper,
-	"dto-mapper":        IsDTOMapper,
-	"inline-closure":    IsInlineClosure,
+	"logger-method":       IsLoggerMethod,
+	"logger-package":      IsLoggerPackage,
+	"logger-factory":      IsLoggerFactory,
+	"metrics-tracing":     IsMetricsTracing,
+	"config-reader":       IsConfigReader,
+	"validation-helper":   IsValidationHelper,
+	"trivial-wrapper":     IsTrivialWrapper,
+	"respond-helper":      IsRespondHelper,
+	"dto-mapper":          IsDTOMapper,
+	"inline-closure":      IsInlineClosure,
 	"trivial-constructor": IsTrivialConstructor,
-	"getter":            IsGetter,
-	"error-wrapper":     IsErrorWrapper,
+	"getter":              IsGetter,
+	"error-wrapper":       IsErrorWrapper,
 }
 
 var logLevelNames = map[string]bool{

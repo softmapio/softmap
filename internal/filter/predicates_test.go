@@ -82,7 +82,7 @@ func TestPredicates(t *testing.T) {
 		{"trivial-wrapper", "Repo).CacheOrder", false}, // two calls: Set + Err
 		{"trivial-wrapper", "Service).CreateOrder", false},
 
-		{"inline-closure", "CreateOrder$1", true},        // go func(){ AuditLog + log } - one real call
+		{"inline-closure", "CreateOrder$1", true},         // go func(){ AuditLog + log } - one real call
 		{"inline-closure", "Service).CreateOrder", false}, // named method, not a closure
 
 		{"getter", "config.Config).Database", false}, // name is not getter-shaped

@@ -109,7 +109,7 @@ type ExitErrorDoc struct {
 // EffectDoc emits "topic" only for kafka effects - as null when the topic
 // could not be resolved statically, with topic_expr as the source hint.
 type EffectDoc struct {
-	Type      string  `json:"type"`
+	Type string `json:"type"`
 	// Label: manual override from .softmap.yaml, applied in Business mode.
 	Label     string  `json:"label,omitempty"`
 	Detail    string  `json:"detail"`

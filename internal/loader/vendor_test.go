@@ -13,7 +13,7 @@ func TestInconsistentVendorFallsBackToModuleCache(t *testing.T) {
 		"go.mod":  "module example.com/stale\n\ngo 1.22\n",
 		"main.go": "package main\n\nfunc main() {}\n",
 		// Claims an explicit dep that go.mod does not require.
-		"vendor/modules.txt": "# example.com/ghost v1.0.0\n## explicit; go 1.22\nexample.com/ghost\n",
+		"vendor/modules.txt":                "# example.com/ghost v1.0.0\n## explicit; go 1.22\nexample.com/ghost\n",
 		"vendor/example.com/ghost/ghost.go": "package ghost\n",
 	})
 	p, err := Load(dir)

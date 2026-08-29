@@ -47,15 +47,15 @@ func TestSQLAccess(t *testing.T) {
 
 func TestPathEntity(t *testing.T) {
 	tests := map[string]string{
-		"/products/{id}":         "products",
-		"/orders/:id/approve":    "orders",
-		"/v1/reports":            "reports",
-		"/auth/login":            "",
-		"/healthz":               "",
-		"/api/v2/users/{id}":     "users",
-		"/{tenant}/orders":       "",
-		"":                       "",
-		"/metrics":               "",
+		"/products/{id}":      "products",
+		"/orders/:id/approve": "orders",
+		"/v1/reports":         "reports",
+		"/auth/login":         "",
+		"/healthz":            "",
+		"/api/v2/users/{id}":  "users",
+		"/{tenant}/orders":    "",
+		"":                    "",
+		"/metrics":            "",
 	}
 	for in, want := range tests {
 		if got := pathEntity(in); got != want {

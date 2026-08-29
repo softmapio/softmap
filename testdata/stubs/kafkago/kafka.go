@@ -29,7 +29,7 @@ type Reader struct{}
 
 func NewReader(config ReaderConfig) *Reader { return &Reader{} }
 
-func (r *Reader) ReadMessage(ctx context.Context) (Message, error)  { return Message{}, nil }
-func (r *Reader) FetchMessage(ctx context.Context) (Message, error) { return Message{}, nil }
+func (r *Reader) ReadMessage(ctx context.Context) (Message, error)          { return Message{}, nil }
+func (r *Reader) FetchMessage(ctx context.Context) (Message, error)         { return Message{}, nil }
 func (r *Reader) CommitMessages(ctx context.Context, msgs ...Message) error { return nil }
-func (r *Reader) Close() error                                      { return nil }
+func (r *Reader) Close() error                                              { return nil }

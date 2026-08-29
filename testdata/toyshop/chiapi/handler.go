@@ -22,10 +22,10 @@ import (
 )
 
 type Handler struct {
-	svc     *service.Service
-	log     *log.Logger
-	files   *minio.Client
-	jwtKey  []byte
+	svc    *service.Service
+	log    *log.Logger
+	files  *minio.Client
+	jwtKey []byte
 }
 
 func Register(r chi.Router, s *service.Service, l *log.Logger) {

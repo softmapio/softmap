@@ -264,8 +264,8 @@ func attach(f *graph.Flow, p *loader.Program, n *graph.Node, chosen []Guard) {
 
 	claimed := map[string]bool{}
 	prev := n
-	kind := ""      // first hop is a plain call edge
-	passLbl := ""   // continue-value label of the previous decision
+	kind := ""    // first hop is a plain call edge
+	passLbl := "" // continue-value label of the previous decision
 	decisions := make([]*graph.Node, 0, len(chosen))
 	for _, g := range chosen {
 		posStr := p.Position(g.StmtPos)

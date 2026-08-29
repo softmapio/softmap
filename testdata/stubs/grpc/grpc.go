@@ -22,6 +22,6 @@ type ServiceRegistrar interface {
 
 type Server struct{}
 
-func NewServer() *Server                                  { return &Server{} }
-func (s *Server) RegisterService(d *ServiceDesc, i any)   {}
-func (s *Server) Serve(l any) error                       { return nil }
+func NewServer() *Server                                { return &Server{} }
+func (s *Server) RegisterService(d *ServiceDesc, i any) {}
+func (s *Server) Serve(l any) error                     { return nil }

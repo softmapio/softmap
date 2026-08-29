@@ -30,19 +30,19 @@ type ExitError struct {
 
 // Guard is one If whose one branch terminates the function with an error.
 type Guard struct {
-	CondText   string
-	StmtPos    token.Pos // enclosing if-statement: dedupe key and display pos
+	CondText string
+	StmtPos  token.Pos // enclosing if-statement: dedupe key and display pos
 	// OrderPos is the layout anchor: for `if err := call(); err != nil`
 	// the guard logically runs AFTER the call it checks, even though the
 	// if-keyword precedes it on the line.
-	OrderPos token.Pos
-	FailWhen   bool      // condition value that takes the exit branch
-	PassBlock  *ssa.BasicBlock
-	Exit       ExitError
-	Uses       []string // module calls (same function) feeding the condition
+	OrderPos  token.Pos
+	FailWhen  bool // condition value that takes the exit branch
+	PassBlock *ssa.BasicBlock
+	Exit      ExitError
+	Uses      []string // module calls (same function) feeding the condition
 	// UsesFns: the SSA functions behind Uses - annotate exempts them from
 	// drop rules (guard evidence must never be filtered away).
-	UsesFns []*ssa.Function
+	UsesFns    []*ssa.Function
 	Mechanical bool
 	// CondFromAST: condition text came from source (false = raw SSA form).
 	CondFromAST bool
