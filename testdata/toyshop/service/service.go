@@ -71,7 +71,7 @@ func (s *Service) GetOrder(ctx context.Context, id string) (*model.Order, error)
 	return s.repo.FindOrder(ctx, id)
 }
 
-// FindByPhone resolves an order trying each legacy phone format in turn —
+// FindByPhone resolves an order trying each legacy phone format in turn -
 // the phone side of the either/or lookup fixture.
 func (s *Service) FindByPhone(ctx context.Context, phone string) (*model.Order, error) {
 	// normalizedPhone feeds the guard below: without guard-provenance
@@ -113,7 +113,7 @@ func newID(req *gen.OrderRequest) string {
 }
 
 // opTimings is deliberate noise: a telemetry-shaped receiver living in a
-// business package — the metrics heuristic must drop its methods by
+// business package - the metrics heuristic must drop its methods by
 // receiver name.
 type opTimings struct {
 	log *log.Logger
@@ -124,7 +124,7 @@ func (t *opTimings) flush() {
 }
 
 // tracedLogger is deliberate noise: it is not named like a logger and lives
-// in the service package, but it RETURNS a logger — the logger-factory
+// in the service package, but it RETURNS a logger - the logger-factory
 // heuristic must drop it.
 func (s *Service) tracedLogger() *log.Logger {
 	return s.log

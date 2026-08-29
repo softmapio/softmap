@@ -20,7 +20,7 @@ labels: bug
 <!-- softmap prints phase=... lines to stderr, e.g.
      phase=load elapsed=2.7s module=... pkgs=362 funcs=78270
      phase=discover elapsed=95ms entrypoints=0
-     Paste them all — they tell us where things went sideways. -->
+     Paste them all - they tell us where things went sideways. -->
 
 ```
 ```
@@ -40,4 +40,4 @@ labels: bug
 - softmap version: <!-- output of: go version -m $(which softmap) | head -3 -->
 - Target repo: <!-- public link if possible; otherwise framework/router used
      (chi/gin/echo/grpc/...) and rough size. Never paste private code you
-     can't share — a minimal reproduction snippet is ideal. -->
+     can't share - a minimal reproduction snippet is ideal. -->

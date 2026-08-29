@@ -158,7 +158,7 @@ func assertFlowContent(t *testing.T, jsonOut []byte) {
 	multi, dynamic, async := 0, 0, 0
 	var kafkaTopic string
 	for _, n := range doc.Nodes {
-		// Noise must be gone entirely — among steps; an exit naming the
+		// Noise must be gone entirely - among steps; an exit naming the
 		// failed helper ("HTTP 422 (validateOrder failed)") is an outcome.
 		// validateOrder itself is NOT noise anymore: its result feeds a
 		// rendered decision, and guard evidence is exempt from filtering.
@@ -291,7 +291,7 @@ func assertGuardContent(t *testing.T, jsonOut []byte) {
 	if !usesOK {
 		t.Error("no decision carries uses=[fetchResellers] provenance")
 	}
-	// ErrApprovalStopped arrives through a wordless "%w: %w" wrap — the
+	// ErrApprovalStopped arrives through a wordless "%w: %w" wrap - the
 	// classifier must surface the sentinel, not an "…: …" message.
 	wantSent := map[string]bool{"ErrNoResellersAttached": true, "ErrApprovalStopped": true}
 	if len(sentinels) != 2 || !wantSent[sentinels[0]] || !wantSent[sentinels[1]] {

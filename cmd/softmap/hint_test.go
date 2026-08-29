@@ -24,7 +24,7 @@ func loadToyshop(t *testing.T) *loader.Program {
 
 // TestNoEntrypointsHint pins what a user sees when discovery finds nothing:
 // the recognized frameworks, the flag, and names that exist in their own repo
-// and actually resolve — the hint tells them to paste one, so a name that
+// and actually resolve - the hint tells them to paste one, so a name that
 // does not resolve would be a broken promise.
 func TestNoEntrypointsHint(t *testing.T) {
 	p := loadToyshop(t)

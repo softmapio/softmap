@@ -10,7 +10,7 @@ import (
 // guard in ApproveOrder; flow maps must render it as a decision + exit.
 var ErrNoResellersAttached = errors.New("no resellers attached to account")
 
-// ErrApprovalStopped is wrapped through a wordless "%w: %w" format — the
+// ErrApprovalStopped is wrapped through a wordless "%w: %w" format - the
 // exit must be classified as this sentinel, not as the message "…: …".
 var ErrApprovalStopped = errors.New("approval stopped")
 
@@ -43,7 +43,7 @@ func (s *Service) ApproveOrder(ctx context.Context, accountID, orderID string) e
 	}
 
 	if o.Qty > 10 {
-		// gate fixture: neither branch exits — the condition only decides
+		// gate fixture: neither branch exits - the condition only decides
 		// whether the audit below runs. Flow maps must render it as a
 		// decision with the gated call nested under it.
 		if err := s.repo.AuditLog(ctx, o, "bulk"); err != nil {

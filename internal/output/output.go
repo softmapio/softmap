@@ -94,7 +94,7 @@ type NodeDoc struct {
 	Fallible       bool          `json:"fallible,omitempty"`
 	ChecksOverflow int           `json:"checks_overflow,omitempty"`
 	// Returns: the step's result types, compactly rendered
-	// ("*model.Order, error") — what the reader gets out of this step.
+	// ("*model.Order, error") - what the reader gets out of this step.
 	Returns string `json:"returns,omitempty"`
 }
 
@@ -106,7 +106,7 @@ type ExitErrorDoc struct {
 	Pos     string `json:"pos,omitempty"`
 }
 
-// EffectDoc emits "topic" only for kafka effects — as null when the topic
+// EffectDoc emits "topic" only for kafka effects - as null when the topic
 // could not be resolved statically, with topic_expr as the source hint.
 type EffectDoc struct {
 	Type      string  `json:"type"`
@@ -118,7 +118,7 @@ type EffectDoc struct {
 	Pos       string  `json:"pos,omitempty"`
 	Async     bool    `json:"async,omitempty"`
 	// Alt: sits in a branch mutually exclusive with another effect of the
-	// same node — statically known to never both run.
+	// same node - statically known to never both run.
 	Alt bool `json:"alt,omitempty"`
 
 	isKafka bool
@@ -195,7 +195,7 @@ func FromFlow(f *graph.Flow, ep *entrypoints.Entrypoint, module, epPos string, r
 
 	// Deterministic ids: BFS over the surviving graph from the root, with
 	// each node's children in SOURCE order (edge seq = call-site position),
-	// so the document — and the viewer reading it — follow the code.
+	// so the document - and the viewer reading it - follow the code.
 	childrenOf := func(n *graph.Node) []*graph.Node { return sourceOrdered(f, n) }
 	ids := map[*graph.Node]string{}
 	var order []*graph.Node
@@ -331,7 +331,7 @@ func dtoDoc(d *graph.DTOInfo) *DTODoc {
 }
 
 // sourceOrdered returns n's children sorted by the source position of the
-// call that creates each edge — the order the code reads.
+// call that creates each edge - the order the code reads.
 func sourceOrdered(f *graph.Flow, n *graph.Node) []*graph.Node {
 	out := append([]*graph.Node(nil), n.Out...)
 	const last = int(^uint(0) >> 1)

@@ -21,7 +21,7 @@ import (
 type Overrides map[string]string
 
 // Config is the whole .softmap.yaml: label overrides plus the entity-shelf
-// knobs — display names for entity keys and manual satellite clustering:
+// knobs - display names for entity keys and manual satellite clustering:
 //
 //	entities:
 //	  order: "Заказ"

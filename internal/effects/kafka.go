@@ -11,7 +11,7 @@ import (
 // Kafka producer detection resolves the topic when it is a string constant,
 // a package-level const/var, or a struct field set once from a constant
 // (writer configured in a constructor). Anything else degrades honestly to
-// Topic:"" plus a TopicExpr hint — never a silently missing effect.
+// Topic:"" plus a TopicExpr hint - never a silently missing effect.
 
 func matchSegmentioProducer(info *ssax.CalleeInfo) bool {
 	return info.Pkg == "github.com/segmentio/kafka-go" &&

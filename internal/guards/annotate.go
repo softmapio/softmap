@@ -32,7 +32,7 @@ const (
 // mechanical wraps) leave the node's error_exits list, so nothing shows
 // twice.
 // markAlternativeEffects: on nodes with several effects, sites in mutually
-// non-dominating blocks belong to alternative branches — the panel can say
+// non-dominating blocks belong to alternative branches - the panel can say
 // "these statements never both run" when it is statically known.
 func markAlternativeEffects(p *loader.Program, n *graph.Node) {
 	if n.Fn == nil || len(n.Effects) < 2 {
@@ -146,7 +146,7 @@ func Annotate(f *graph.Flow, p *loader.Program) {
 			c.n.ChecksOverflow += len(chosen) - maxDecisionsPerFunc
 			chosen = chosen[:maxDecisionsPerFunc]
 		}
-		// Fit the global budget guard by guard, best outcomes first — a
+		// Fit the global budget guard by guard, best outcomes first - a
 		// big flow keeps its sentinels and gates instead of losing the
 		// whole function's story at once.
 		sorted := append([]Guard(nil), chosen...)
@@ -165,7 +165,7 @@ func Annotate(f *graph.Flow, p *loader.Program) {
 		}
 		sort.SliceStable(fit, func(i, j int) bool { return fit[i].OrderPos < fit[j].OrderPos })
 		// Guard evidence is immune: a call whose result feeds a rendered
-		// decision's condition must never be filtered away — the reader
+		// decision's condition must never be filtered away - the reader
 		// has to see WHAT was checked.
 		for _, g := range fit {
 			for _, fn := range g.UsesFns {
@@ -210,7 +210,7 @@ func semanticGuards(f *graph.Flow, p *loader.Program, n *graph.Node, gs []Guard,
 			sem = append(sem, g)
 			continue
 		}
-		// A decision earns canvas space only when its outcome has a NAME —
+		// A decision earns canvas space only when its outcome has a NAME -
 		// a sentinel or a message. "? err != nil → ✗ error" tells the
 		// reader nothing, and unnamed exits used to merge into one shared
 		// hub that collected fail edges from the whole map. Unnamed guards
@@ -220,7 +220,7 @@ func semanticGuards(f *graph.Flow, p *loader.Program, n *graph.Node, gs []Guard,
 			continue
 		}
 		// No source `if` behind the condition (a loop header's exhaustion
-		// exit): "t7 < t5" is unreadable — the outcome stays visible in
+		// exit): "t7 < t5" is unreadable - the outcome stays visible in
 		// error_exits, but it earns no decision card.
 		if !g.CondFromAST {
 			n.ChecksOverflow++
@@ -348,7 +348,7 @@ func attach(f *graph.Flow, p *loader.Program, n *graph.Node, chosen []Guard) {
 			f.RewireEdge(n, c, decisions[target], "pass")
 			moved[c] = true
 			if !chosen[target].Gate {
-				// The continue side of an exit decision is a branch too —
+				// The continue side of an exit decision is a branch too -
 				// label it, never leave the else side implicit.
 				f.SetEdgeKind(decisions[target], c, "pass", failLabel(!chosen[target].FailWhen))
 			}
@@ -364,7 +364,7 @@ func attach(f *graph.Flow, p *loader.Program, n *graph.Node, chosen []Guard) {
 		}
 	}
 	// A branch's OTHER side: children in the skip-side region hang off the
-	// same decision, labeled "no" — the exclusive alternative.
+	// same decision, labeled "no" - the exclusive alternative.
 	for _, c := range existing {
 		if moved[c] {
 			continue
@@ -387,7 +387,7 @@ func attach(f *graph.Flow, p *loader.Program, n *graph.Node, chosen []Guard) {
 		}
 	}
 	// A gate whose gated work was claimed by a deeper decision in the same
-	// chain ends up an empty card — a condition pointing at nothing. Remove
+	// chain ends up an empty card - a condition pointing at nothing. Remove
 	// it rather than render a dangling "yes → steps below run".
 	for _, d := range decisions {
 		if d.Decision != nil && d.Decision.Gate && len(d.Out) == 0 && len(d.Effects) == 0 {
@@ -407,13 +407,13 @@ func attach(f *graph.Flow, p *loader.Program, n *graph.Node, chosen []Guard) {
 	pruneErrorExits(n, claimed)
 }
 
-// gateSideWork: does this side of a gate hold visible work — kept child
+// gateSideWork: does this side of a gate hold visible work - kept child
 // calls or absorbed effects in its exclusive region?
 func gateSideWork(f *graph.Flow, p *loader.Program, n *graph.Node, blk *ssa.BasicBlock, effectBelow map[*graph.Node]bool) bool {
 	if blk == nil {
 		return false
 	}
-	// A multi-predecessor successor is the JOIN — the flow's continuation,
+	// A multi-predecessor successor is the JOIN - the flow's continuation,
 	// not a branch's exclusive region. It holds no work of its own.
 	if len(blk.Preds) > 1 {
 		return false

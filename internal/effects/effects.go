@@ -1,5 +1,5 @@
 // Package effects detects boundary-crossing calls: SQL, Redis, HTTP clients,
-// and Kafka producers. Effect nodes are the anchors of a flow — the filter
+// and Kafka producers. Effect nodes are the anchors of a flow - the filter
 // pipeline never drops them, and graph extraction does not descend past them
 // into library internals.
 package effects
@@ -15,14 +15,14 @@ import (
 
 type Effect struct {
 	Type      string // "sql" | "redis" | "http" | "kafka" | "grpc" | "security" | "storage"
-	Detail    string // query text, command, or method name — best effort
+	Detail    string // query text, command, or method name - best effort
 	Topic     string // resolved Kafka topic, "" if not applicable/unresolved
 	TopicExpr string // source-level hint when the topic is dynamic
 }
 
 // detector matches one library family. Matching happens on the callee's
 // package path (major-version suffix normalized), receiver/interface type
-// name, and method name — identical for static and interface calls, and
+// name, and method name - identical for static and interface calls, and
 // satisfied equally by the real library or a test stub with the same shapes.
 type detector struct {
 	name    string
@@ -287,7 +287,7 @@ func matchHTTPClient(info *ssax.CalleeInfo) bool {
 		switch info.Name {
 		case "Get", "Post", "PostForm", "Head",
 			// Request construction is where the URL (or its template) is
-			// still visible — usually inside the gateway that owns the
+			// still visible - usually inside the gateway that owns the
 			// external service, before a generic transport sends it.
 			"NewRequest", "NewRequestWithContext":
 			return true
@@ -325,8 +325,8 @@ func buildHTTPClient(info *ssax.CalleeInfo, site ssa.CallInstruction) *Effect {
 	return &Effect{Type: "http", Detail: detail}
 }
 
-// urlOrTemplate resolves a URL argument to a constant, or — the dominant
-// gateway pattern — to the fmt.Sprintf format template that builds it
+// urlOrTemplate resolves a URL argument to a constant, or - the dominant
+// gateway pattern - to the fmt.Sprintf format template that builds it
 // ("%s/partner/%s"), which still names the endpoint.
 func urlOrTemplate(v ssa.Value) (string, bool) {
 	if u, ok := ssax.ConstString(v); ok {

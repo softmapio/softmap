@@ -41,7 +41,7 @@ func httpEntrypoint(method, path string, fn *ssa.Function) []Entrypoint {
 //
 // Only the matchers of colon-syntax routers may call this. To net/http, chi
 // and gorilla a segment starting with ":" or "*" is an ordinary LITERAL, and
-// rewriting it there would rename a real route — and could collide it with
+// rewriting it there would rename a real route - and could collide it with
 // the router's own "{id}" route.
 func normalizeRoutePath(path string) string {
 	if !strings.ContainsAny(path, ":*+") {
@@ -178,7 +178,7 @@ var chiSubrouters = map[string]bool{"Route": true, "Group": true}
 
 // chiGroupPrefix walks outward from a route-registration closure: if the
 // enclosing anonymous function is the callback of a chi Route(pattern, fn)
-// (directly or through a MakeClosure), the pattern prepends — recursively,
+// (directly or through a MakeClosure), the pattern prepends - recursively,
 // so nested groups compose ("/api" + "/auth").
 func chiGroupPrefix(fn *ssa.Function) string {
 	prefix := ""
@@ -196,7 +196,7 @@ func chiGroupPrefix(fn *ssa.Function) string {
 
 // callbackRegistrar finds the subrouter call in pkg (one of the names in
 // want) that receives closure as its callback, and returns it with its
-// constant prefix argument — "" when the call takes no prefix, as in chi's
+// constant prefix argument - "" when the call takes no prefix, as in chi's
 // Group(fn). Both chi's Route/Group and fiber's Route register a subtree this
 // way, either passing the function directly or through a MakeClosure.
 func callbackRegistrar(closure *ssa.Function, pkg string, want map[string]bool) (ssa.CallInstruction, string) {
@@ -343,7 +343,7 @@ func matchFiber(p *loader.Program, _ *ssa.Function, site ssa.CallInstruction, in
 			method = strings.Join(ms, ",") // v3: several at once
 		}
 		// A method that does not resolve to a constant degrades to ANY, the
-		// way an unknown method does everywhere else — the route is still
+		// way an unknown method does everywhere else - the route is still
 		// real, only the verb is unknown.
 		args = args[1:]
 	case name == "All":
@@ -381,7 +381,7 @@ func receiverOf(site ssa.CallInstruction, info *ssax.CalleeInfo) ssa.Value {
 
 // fiberPrefix composes the path prefix a registration inherits. Fiber groups
 // are values (api := app.Group("/api")), so the router a route was registered
-// on is chased back through the Group calls that produced it — recursively,
+// on is chased back through the Group calls that produced it - recursively,
 // so nested groups compose. Route(prefix, func(r fiber.Router){...}) hands its
 // router in as a callback parameter instead, which is followed outward to the
 // Route call and then chased the same way.
@@ -433,7 +433,7 @@ func fiberPrefix(v ssa.Value, depth int) string {
 			// Not a Route callback: the router was handed in as an ordinary
 			// argument (setupRoutes(app.Group("/api")), or a constructor
 			// storing it in a field). Follow the argument, but only from a
-			// single call site — two callers could pass different groups,
+			// single call site - two callers could pass different groups,
 			// and picking one would invent a prefix.
 			callers := callersOf(owner)
 			if len(callers) != 1 {
@@ -456,7 +456,7 @@ func fiberPrefix(v ssa.Value, depth int) string {
 // callback. An anonymous function records its own referrers; a declared
 // function or method does not (ssa.Function.Referrers is nil unless the
 // function is anonymous), so app.Route("/admin", adminRoutes) has to be found
-// by scanning the program instead — memoized, since a repo can register many
+// by scanning the program instead - memoized, since a repo can register many
 // subtrees that way.
 func fiberRegistrarOf(fn *ssa.Function) (ssa.CallInstruction, string) {
 	if fn == nil {
@@ -610,7 +610,7 @@ func fiberMajor(pkg string) int {
 // gRPC codebase makes: pb.Register<Service>Server(registrar, impl). The
 // generated Register function's second parameter is the service interface;
 // each of its exported methods resolved on the concrete impl becomes an
-// entrypoint. (The Register function itself lives in a generated file —
+// entrypoint. (The Register function itself lives in a generated file -
 // that's fine, the call site is handwritten wiring code.)
 func matchGRPCRegister(p *loader.Program, _ *ssa.Function, site ssa.CallInstruction, info *ssax.CalleeInfo) []Entrypoint {
 	if info.Static == nil || info.Type != "" ||

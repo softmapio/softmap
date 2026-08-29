@@ -28,7 +28,7 @@ func Audit(c fiber.Ctx) error { return nil }
 func Register(app *fiber.App, h *Handler) {
 	app.Get("/status", h.Status)
 
-	// Endpoint first, middleware after — the v3 argument order.
+	// Endpoint first, middleware after - the v3 argument order.
 	app.Get("/v3/orders/:id", h.GetOrder, Audit)
 
 	// Add takes several methods at once in v3.

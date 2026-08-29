@@ -15,7 +15,7 @@ import (
 // TestCHAFallbackForDIWiredInterfaces: worker.Run calls Active.Sync where
 // Active is only populated by a (simulated) DI container. VTA resolves the
 // call to nothing; the per-site CHA fallback must find the unique
-// implementation and keep the flow — including its SQL effect — alive.
+// implementation and keep the flow - including its SQL effect - alive.
 func TestCHAFallbackForDIWiredInterfaces(t *testing.T) {
 	dir, err := filepath.Abs(filepath.Join("..", "..", "testdata", "toyshop"))
 	if err != nil {
@@ -72,7 +72,7 @@ func TestCHAFallbackForDIWiredInterfaces(t *testing.T) {
 		t.Errorf("Sync did not absorb its SQL effect; effects: %+v", syncNode.Effects)
 	}
 
-	// Without the fallback the flow must degrade to a dynamic terminal —
+	// Without the fallback the flow must degrade to a dynamic terminal -
 	// pin that so the fallback is provably doing the work.
 	bare, err := Extract(p, res.Graph, nil, run, Limits{})
 	if err != nil {

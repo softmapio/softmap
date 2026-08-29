@@ -61,7 +61,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 		return
 	}
-	// Security-effect fixture: the guard consumes a third-party check —
+	// Security-effect fixture: the guard consumes a third-party check -
 	// the bcrypt call must surface as "verifies password", never filtered.
 	if err := bcrypt.CompareHashAndPassword([]byte(o.Item), []byte(req.Password)); err != nil {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
@@ -84,7 +84,7 @@ func toLoginResp(o *model.Order, token, receiptURL string) loginResp {
 
 // findOrderByIdentifier is the either/or fixture: an email identifier takes
 // the tail-return path, anything else falls through to the phone lookup.
-// Flow maps must render one branch decision with exclusive yes/no children —
+// Flow maps must render one branch decision with exclusive yes/no children -
 // never both lookups as unconditional siblings.
 func (h *Handler) findOrderByIdentifier(ctx context.Context, identifier string) (*model.Order, error) {
 	if strings.Contains(identifier, "@") {

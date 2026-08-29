@@ -62,7 +62,7 @@ func IsLoggerMethod(n *graph.Node, _ *loader.Program) bool {
 	return strings.Contains(strings.ToLower(recv), "log")
 }
 
-// IsLoggerPackage: everything in a logging-named package — constructors and
+// IsLoggerPackage: everything in a logging-named package - constructors and
 // helpers included, not just level methods. Anything effectful a custom
 // logger does is immune anyway.
 func IsLoggerPackage(n *graph.Node, _ *loader.Program) bool {
@@ -71,7 +71,7 @@ func IsLoggerPackage(n *graph.Node, _ *loader.Program) bool {
 
 // IsLoggerFactory: a function that returns a logger (scopedLogger,
 // withTraceID, ...) is logging plumbing no matter what it is named or where
-// it lives — the return type is the reliable signal.
+// it lives - the return type is the reliable signal.
 func IsLoggerFactory(n *graph.Node, _ *loader.Program) bool {
 	if n.Fn == nil {
 		return false
@@ -174,7 +174,7 @@ func IsValidationHelper(n *graph.Node, _ *loader.Program) bool {
 }
 
 // IsTrivialWrapper: a single-block body whose only call is the one it
-// forwards to — glue with no logic of its own. Collapsing it keeps the
+// forwards to - glue with no logic of its own. Collapsing it keeps the
 // callee, so nothing meaningful is lost.
 func IsTrivialWrapper(n *graph.Node, _ *loader.Program) bool {
 	if n.Fn == nil || len(n.Fn.Blocks) != 1 {
@@ -192,7 +192,7 @@ func IsTrivialWrapper(n *graph.Node, _ *loader.Program) bool {
 	return calls == 1
 }
 
-// IsDTOMapper: a pure shape-shifter between layers — ToX/FromX/MapX and
+// IsDTOMapper: a pure shape-shifter between layers - ToX/FromX/MapX and
 // the *FromModel/*ToResponse family. Collapsing keeps any callee; the
 // caller shows "+N mapping" instead of a step that does no business work.
 func IsDTOMapper(n *graph.Node, _ *loader.Program) bool {
@@ -230,7 +230,7 @@ func mapperName(name string) bool {
 	return false
 }
 
-// IsRespondHelper: a hand-rolled HTTP respond helper —
+// IsRespondHelper: a hand-rolled HTTP respond helper -
 // RespondWithJSON(w, code, payload) and friends. Once guards turn its call
 // sites into exits and the success terminal, the helper itself is
 // transport plumbing.
@@ -254,7 +254,7 @@ func IsRespondHelper(n *graph.Node, _ *loader.Program) bool {
 }
 
 // IsInlineClosure: an anonymous function (a `go func(){...}` body or an
-// inline literal) that forwards to at most one module function — logging
+// inline literal) that forwards to at most one module function - logging
 // aside, the closure is syntax, the call inside is the story. Collapsing it
 // keeps the callee, and when the closure was launched via `go` the spliced
 // edge stays async, so `go func(){ s.GeneratePdf(...) }` reads as an async
@@ -290,7 +290,7 @@ func IsInlineClosure(n *graph.Node, p *loader.Program) bool {
 }
 
 // IsTrivialConstructor: newX/NewX with a single block, zero calls and a
-// tiny body — a struct literal dressed as a function (error-response DTOs
+// tiny body - a struct literal dressed as a function (error-response DTOs
 // and the like). Collapsing it keeps nothing hidden: it has no callees.
 func IsTrivialConstructor(n *graph.Node, _ *loader.Program) bool {
 	if n.Fn == nil || len(n.Fn.Blocks) != 1 {
@@ -319,7 +319,7 @@ func IsTrivialConstructor(n *graph.Node, _ *loader.Program) bool {
 
 var getterPrefixes = []string{"Get", "Is", "Has", "Len", "Name", "String", "ID"}
 
-// IsGetter: a short, single-block, call-free method — field access dressed
+// IsGetter: a short, single-block, call-free method - field access dressed
 // as a function. Collapsed (it has no callees, so this equals dropping it
 // into the caller's collapsed list).
 func IsGetter(n *graph.Node, _ *loader.Program) bool {

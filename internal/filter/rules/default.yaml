@@ -69,11 +69,11 @@ rules:
     action: collapse
     match: { heuristic: dto-mapper }
   # RespondWithJSON(w, code, payload): guards already turned its call sites
-  # into exits and the success terminal — the helper is transport.
+  # into exits and the success terminal - the helper is transport.
   - id: default:respond-helper
     action: drop
     match: { heuristic: respond-helper }
-  # go func(){ s.DoWork() } — the goroutine closure is plumbing; the spliced
+  # go func(){ s.DoWork() } - the goroutine closure is plumbing; the spliced
   # edge keeps the async marking, so the callee shows as the async step.
   - id: default:inline-closure
     action: collapse

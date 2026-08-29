@@ -1,6 +1,6 @@
 # softmap backlog
 
-Deferred items from the pre-demo UX review — recorded, not yet implemented.
+Deferred items from the pre-demo UX review - recorded, not yet implemented.
 
 - **Transaction frames.** Group effects that share one `sql.Tx` (Begin →
   Commit/Rollback) into a visual frame on the map, so an analyst sees which
@@ -22,9 +22,9 @@ Deferred items from the pre-demo UX review — recorded, not yet implemented.
 - **Terminal placement.** Success terminal pinned to the right edge of the
   canvas, mirroring where flowchart readers expect the end state.
 - **Readability lint (rename hints).** softmap already knows every place a
-  cryptic 1–2 letter variable (`s`, `o`, `sc`) feeds a rendered decision —
+  cryptic 1-2 letter variable (`s`, `o`, `sc`) feeds a rendered decision -
   the viewer refuses to show such names and falls back to provenance. Emit
-  the same list as a report for developers: `file:line — rename <s> so the
+  the same list as a report for developers: `file:line - rename <s> so the
   map can say "no shop" instead of hiding the name` (e.g. a
   `scan --lint-readability` flag or a section in index.json). Same idea for
   conditions that fail business templating (OR-trees, cryptic idents): each

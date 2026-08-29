@@ -314,9 +314,9 @@ func noEntrypointsHint(p *loader.Program, dir string) string {
 		return b.String()
 	}
 	b.WriteString("  A router registered through your own wrapper is not seen. Map a\n" +
-		"  handler by name instead — any unambiguous suffix works:\n" +
+		"  handler by name instead - any unambiguous suffix works:\n" +
 		"    softmap scan " + dir + " --entrypoint \"func:<name>\"\n" +
-		"  where <name> is the handler's qualified name — in this repo\n" +
+		"  where <name> is the handler's qualified name - in this repo\n" +
 		"  request-shaped functions are named like:\n")
 	for _, n := range names {
 		b.WriteString("    " + n + "\n")
@@ -327,7 +327,7 @@ func noEntrypointsHint(p *loader.Program, dir string) string {
 }
 
 // exampleHandlerNames returns up to two request-shaped functions from the
-// scanned module — one plain function and one method — to show what a
+// scanned module - one plain function and one method - to show what a
 // qualified name looks like there. Their job is to teach the naming form
 // (which is what people get wrong), not to identify the endpoint the reader
 // wants, so the hint presents them as examples of shape rather than as the
@@ -389,7 +389,7 @@ func exampleHandlerNames(p *loader.Program) []string {
 type candidate struct{ short, full string }
 
 // resolvableName prefers the short name but falls back to the qualified one
-// when the short form matches more than one function — the hint tells the
+// when the short form matches more than one function - the hint tells the
 // reader to paste it, so a name that would come back "ambiguous" is a broken
 // promise.
 func resolvableName(p *loader.Program, c candidate) string {
@@ -401,7 +401,7 @@ func resolvableName(p *loader.Program, c candidate) string {
 
 // handlerLike reports whether fn's signature has the shape of a request
 // handler: net/http's (ResponseWriter, *Request), or the single request-context
-// parameter every router passes — gin's *Context, echo's Context, fiber's
+// parameter every router passes - gin's *Context, echo's Context, fiber's
 // *Ctx, and the per-project context types that hand-rolled wrappers define. A
 // plain stdlib context.Context does not count; almost every function takes one.
 func handlerLike(fn *ssa.Function) bool {

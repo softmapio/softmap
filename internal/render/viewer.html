@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>__TOOL__ — flow maps</title>
+<title>__TOOL__ - flow maps</title>
 <style>
   :root {
     --bg: #F6F7F9; --grid-dot: #D5DBE6; --surface: #FFFFFF; --surface2: #EEF1F6;
@@ -357,7 +357,7 @@ function splitIdent(word) {
 }
 function humanize(func, pkg, asyncIn) {
   // An anonymous function that survived filtering is a real body of work
-  // launched inline — naming it after its parent would draw a confusing
+  // launched inline - naming it after its parent would draw a confusing
   // twin card ("Get fcb report" twice). Say what it is instead.
   const anon = /\$\d+$/.test(shortName(func).split(".").pop());
   if (anon) {
@@ -373,12 +373,12 @@ function humanize(func, pkg, asyncIn) {
     return i === 0 ? lw.charAt(0).toUpperCase() + lw.slice(1) : lw;
   });
   let title = words.join(" ");
-  // A bare verb ("Get", "Do", "Flush") says nothing — borrow context from
+  // A bare verb ("Get", "Do", "Flush") says nothing - borrow context from
   // the qualifier: the receiver type when there is one
   // (scoringTimings.flush -> "Flush scoring timings"), else the package
   // (validator.Get -> "Get validator").
   if (words.length === 1) {
-    // Layer names (useCase, handler, repository) say nothing — climb to
+    // Layer names (useCase, handler, repository) say nothing - climb to
     // the first qualifier with domain meaning: receiver, package, then
     // the package's parent dir ("auth" for internal/auth/usecase).
     const layer = /^(use ?cases?|uc|handlers?|services?|svc|repositor(y|ies)|repo|impl|delivery|controllers?|servers?|v\d+|http|grpc)$/i;
@@ -396,7 +396,7 @@ function humanize(func, pkg, asyncIn) {
   return title;
 }
 // Error-exit labels on cards: sentinel identifiers humanize, messages stay
-// verbatim — except printf placeholders, which read as jargon: in business
+// verbatim - except printf placeholders, which read as jargon: in business
 // mode %v/%s/%d become an ellipsis ("phone: %v" -> "phone: …"), meaning "the
 // concrete detail is substituted at runtime".
 function exitLabelText(e) {
@@ -408,7 +408,7 @@ function softenPlaceholders(text) {
   return text.replace(/%[+#\-\d.]*[a-zA-Z]/g, "…").replace(/…(\s*…)+/g, "…");
 }
 // businessCond renders a condition as words when every clause matches a
-// template — otherwise returns "" and the card shows the outcome only (the
+// template - otherwise returns "" and the card shows the outcome only (the
 // raw condition stays in the panel). Bans code-speak: no nil, no operators.
 function businessCond(cond) {
   if (!cond) return "";
@@ -416,7 +416,7 @@ function businessCond(cond) {
   const humanIdent = (x) => {
     const base = x.replace(/^[!*&(]+|[)]+$/g, "").split(".").pop();
     if (!/^\w+$/.test(base)) return null;
-    // A 1–2 letter variable (s, o, tx) is a name for the compiler, not for
+    // A 1-2 letter variable (s, o, tx) is a name for the compiler, not for
     // the reader: "no s" means nothing. Fail the template so the card can
     // fall back to the subject ("get by id returned nothing"). Real short
     // words the reader knows (id, ok) pass via the acronym list.
@@ -455,7 +455,7 @@ function humanizeCond(cond) {
   }).join('"');
 }
 // tech-mode wrapping: identifiers may only break at word boundaries
-// (camelCase transitions, dots, slashes) — never mid-word.
+// (camelCase transitions, dots, slashes) - never mid-word.
 function breakable(name) {
   let out = "";
   for (let i = 0; i < name.length; i++) {
@@ -477,7 +477,7 @@ function serviceContext(e, pkg) {
   if (m) return m[1];
   return "";
 }
-// business-mode effect phrases derived from the effect itself — no LLM.
+// business-mode effect phrases derived from the effect itself - no LLM.
 function effectPhrase(e, pkg) {
   switch (e.type) {
     case "sql": return sqlPhrase(e.detail || "");
@@ -505,7 +505,7 @@ function effectPhrase(e, pkg) {
 }
 
 // sqlPhrase: verb + table + notable columns, all parsed statically from the
-// statement — "updates users — deleted_at, status", "reads client_whitelist".
+// statement - "updates users - deleted_at, status", "reads client_whitelist".
 // Falls back to the generic verb when the table is not resolvable.
 function sqlPhrase(q) {
   const s = q.trim();
@@ -528,7 +528,7 @@ function sqlPhrase(q) {
         .filter((c) => /^\w+$/.test(c)).slice(0, 4);
     }
     if (t && cols.includes("deleted_at")) return `marks ${t} deleted`;
-    if (t && cols.length) return `updates ${t} — ${cols.join(", ")}`;
+    if (t && cols.length) return `updates ${t} - ${cols.join(", ")}`;
     return t ? `updates ${t}` : "writes database";
   }
   if (/^DELETE/.test(up)) {
@@ -576,7 +576,7 @@ function buildModel(doc) {
   for (const n of nodes.values()) { if (n.depth === undefined) n.depth = 1; maxD = Math.max(maxD, n.depth); }
   // The flow ends in a success terminal (both modes). It hangs off the
   // FINAL executed step: follow the last continue edge from the root down
-  // the spine — never off the entrypoint or an early error branch.
+  // the spine - never off the entrypoint or an early error branch.
   if (doc.entrypoint.returns || doc.entrypoint.success) {
     let last = root, hops = 0;
     while (hops++ < 300) {
@@ -632,13 +632,13 @@ function chipHTML(n) {
   }
 
   if (d.fallible) chips.push(`<span class="chip async" title="a call inside can fail; its error propagates to the caller">⚠ may fail</span>`);
-  if (d.checks_overflow) chips.push(`<span class="chip" title="conditions checked here beyond the card budget — open the panel for the full list">+${d.checks_overflow} checks</span>`);
+  if (d.checks_overflow) chips.push(`<span class="chip" title="conditions checked here beyond the card budget - open the panel for the full list">+${d.checks_overflow} checks</span>`);
   return chips.length ? `<span class="chips">${chips.join("")}</span>` : "";
 }
 
 function nodeHTML(n, module) {
   if (!n.entry && n.doc.kind === "decision" && n.doc.gate) {
-    // A gate ends nothing — it decides whether the steps below run at all.
+    // A gate ends nothing - it decides whether the steps below run at all.
     const cond = mode === "business" ? humanizeCond(n.doc.condition) : n.doc.condition || "";
     let html = `<span class="nm"><span class="glyph">?</span>${mode === "business" ? escapeHTML(cond) : breakable(cond)}</span>`;
     if (mode !== "business" && n.doc.uses && n.doc.uses.length) {
@@ -666,7 +666,7 @@ function nodeHTML(n, module) {
     const exitLabel = err.name || (err.message ? `"${err.message}"` : "error");
     if (mode === "business") {
       // The card asks the QUESTION; the error text and the HTTP code live
-      // on the red exit card and the fail edge — never duplicated here.
+      // on the red exit card and the fail edge - never duplicated here.
       const subj = n.doc.uses && n.doc.uses.length
         ? n.doc.uses.map((u) => splitIdent(u).join(" ").toLowerCase()).join(", ")
         : "";
@@ -813,14 +813,14 @@ function render(model) {
 
   if (mode === "business") {
     // ── OUTLINE LAYOUT: the flow as nested cards, like the code reads ──
-    // A step's body sits BELOW it, indented — so every column segment
+    // A step's body sits BELOW it, indented - so every column segment
     // unambiguously belongs to its parent, and long diagonal edges vanish.
     const INDENT = 64, VGAP = 12;
     let y = 0;
     const placed = new Set([model.root]);
     // Primary placement: a step reachable from the main (sync) flow gets its
     // full card there, even when a goroutine branch calls it earlier in
-    // source order — the async side-quest shows the ↻ repeat, not the story.
+    // source order - the async side-quest shows the ↻ repeat, not the story.
     const primaryEdge = new Map();
     {
       const visit = (n, allowAsync, seen) => {
@@ -846,12 +846,12 @@ function render(model) {
       for (const e of n.outEdges) {
         if (placed.has(e.to) || primaryEdge.get(e.to) !== e) {
           // A step already drawn elsewhere: a small repeat card at the
-          // call position (click jumps to the original) — long reference
+          // call position (click jumps to the original) - long reference
           // arcs across the canvas confused more than they explained.
           const target = e.to;
           if (target.doc && (target.doc.kind === "exit" || !target.outEdges.length)) {
             // A leaf (an exit, a step with no calls of its own) repeats as
-            // a real card — there is no subtree to duplicate, and a "jump
+            // a real card - there is no subtree to duplicate, and a "jump
             // to the full step" reference here confused more than it saved.
             const dup = { id: `dup:${ghostSeq++}:${target.id}`, el: document.createElement("button") };
             dup.el.className = target.el.className.replace(" selected", "") + " dup";
@@ -874,7 +874,7 @@ function render(model) {
             : target.doc.kind === "exit" ? "✗ " + ((target.doc.error || {}).name || (target.doc.error || {}).message || "exit")
             : (mode === "business" ? humanize(target.doc.func, target.doc.package, target.asyncIn) : shortName(target.doc.func));
           g.el.innerHTML = `<span class="nm">↻ ${escapeHTML(t)}</span>` +
-            `<span class="gh">repeat call — click to jump to the full step</span>`;
+            `<span class="gh">repeat call - click to jump to the full step</span>`;
           g.el.title = "this step is called again here; its full card is elsewhere in the flow";
           g.el.addEventListener("click", (ev) => { ev.stopPropagation(); select(target); center(target); });
           g.el.addEventListener("mouseenter", () => highlight(target, true));
@@ -934,7 +934,7 @@ function render(model) {
     let d, lx, ly;
     if (e.elbow) {
       // Tree guide: down from under the parent's edge, then right into the
-      // child — short, never crosses unrelated cards.
+      // child - short, never crosses unrelated cards.
       const tgt = e.toEl || c;
       const gx = n.x + 18;
       const cy = tgt.y + Math.min(16, tgt.el.offsetHeight / 2);
@@ -1202,7 +1202,7 @@ function openPanel(n) {
   if (d.effects && d.effects.length) {
     html += `<h4>Effects (${d.effects.length})</h4>`;
     if (d.effects.some((e) => e.alt)) {
-      html += `<div class="kv" style="margin-bottom:4px">⑂ marks statements in alternative branches — they never all run together; unmarked ones run in order</div>`;
+      html += `<div class="kv" style="margin-bottom:4px">⑂ marks statements in alternative branches - they never all run together; unmarked ones run in order</div>`;
     }
     for (const e of d.effects) {
       html += `<div class="kv" style="margin:8px 0 3px"><b>${EFFECT_LABEL[e.type] || e.type}</b>` +
@@ -1222,11 +1222,11 @@ function openPanel(n) {
     html += `<h4>Inlined helpers (${d.collapsed.length})</h4><ul>` +
       d.collapsed.map((c) => `<li><span class="kv">${escapeHTML(c)}</span></li>`).join("") + `</ul>`;
   }
-  // Badge meanings live here too — hover-only tooltips are easy to miss.
+  // Badge meanings live here too - hover-only tooltips are easy to miss.
   const notes = [];
-  if (d.fallible) notes.push("⚠ may fail — a call inside can fail; its error propagates to the caller");
-  if (d.checks_overflow) notes.push(`+${d.checks_overflow} checks — more conditions are checked in this step than the card shows`);
-  if (d.collapsed && d.collapsed.length) notes.push(`+${d.collapsed.length} inlined — trivial plumbing folded into this step (listed above)`);
+  if (d.fallible) notes.push("⚠ may fail - a call inside can fail; its error propagates to the caller");
+  if (d.checks_overflow) notes.push(`+${d.checks_overflow} checks - more conditions are checked in this step than the card shows`);
+  if (d.collapsed && d.collapsed.length) notes.push(`+${d.collapsed.length} inlined - trivial plumbing folded into this step (listed above)`);
   if (notes.length) {
     html += `<h4>Badges</h4>` + notes.map((x) => `<div class="kv">${escapeHTML(x)}</div>`).join("");
   }
@@ -1234,11 +1234,11 @@ function openPanel(n) {
   html += listSection("Calls", n.out);
   commit(shortName(d.func), html);
 }
-// dtoSection renders a data contract: wire names first — that is what the
+// dtoSection renders a data contract: wire names first - that is what the
 // analyst matches against API specs and payload samples.
 function dtoSection(title, dto) {
   if (!dto) return "";
-  let html = `<h4>${title} — ${escapeHTML(dto.type)}${dto.format ? " · " + dto.format : ""}</h4>`;
+  let html = `<h4>${title} - ${escapeHTML(dto.type)}${dto.format ? " · " + dto.format : ""}</h4>`;
   html += `<pre>` + dto.fields.map((f) => {
     const wire = f.tag || f.name;
     let line = `${wire.padEnd(24)} ${escapeHTML(f.type)}`;
@@ -1249,7 +1249,7 @@ function dtoSection(title, dto) {
 }
 
 function listSection(title, list) {
-  if (!list.length) return `<h4>${title}</h4><div class="empty">nothing — this is a leaf</div>`;
+  if (!list.length) return `<h4>${title}</h4><div class="empty">nothing - this is a leaf</div>`;
   const numbered = title === "Calls"; // call order = code order
   return `<h4>${title}</h4><ul>` + list.map((m, idx) => {
     let label = m.entry ? "entrypoint" : (mode === "business" ? humanize(m.doc.func, m.doc.package, m.asyncIn) : shortName(m.doc.func));
@@ -1367,7 +1367,7 @@ const mt = $("modeToggle");
 });
 document.body.classList.toggle("mode-business", mode === "business");
 
-// Sketch is a style toggle, not a view mode — it lives on the right, away
+// Sketch is a style toggle, not a view mode - it lives on the right, away
 // from Business/Tech.
 const sketchWrap = document.createElement("nav");
 sketchWrap.className = "switcher";
@@ -1483,7 +1483,7 @@ function renderHome() {
     body += `</div>`;
   } else {
     body += `<div class="home-head"><span class="home-title">Entities</span>` +
-      `<span class="home-sub">what this service works with — derived from tables, routes and topics</span></div>`;
+      `<span class="home-sub">what this service works with - derived from tables, routes and topics</span></div>`;
     body += `<input type="text" id="homeSearch" placeholder="search entities and endpoints…" ` +
       `value="${escapeHTML(q)}" aria-label="Search entities and endpoints">`;
     // Biggest shelves first: on a 400-flow service the entity the owner is
@@ -1657,8 +1657,8 @@ if (FLOWS.length <= 6) {
   sw.appendChild(count);
 }
 renderCurrent();
-// With an entity index, Business mode opens on the shelf — the noun-first
-// home screen — not on an arbitrary first endpoint.
+// With an entity index, Business mode opens on the shelf - the noun-first
+// home screen - not on an arbitrary first endpoint.
 if (INDEX && mode === "business") { homeDiv.hidden = false; renderHome(); }
 window.addEventListener("resize", () => renderCurrent());
 </script>

@@ -1,5 +1,5 @@
 // Command fibershop is the Fiber fixture: a toy service that registers routes
-// through every shape the Fiber matcher handles — plain verbs, nested groups,
+// through every shape the Fiber matcher handles - plain verbs, nested groups,
 // a Route callback, Add, All, wildcards, and middleware that must not be
 // mistaken for an endpoint.
 package main
@@ -27,7 +27,7 @@ func main() {
 
 	app.Get("/healthz", healthz)
 
-	// Middleware first, endpoint last — the v2 argument order.
+	// Middleware first, endpoint last - the v2 argument order.
 	app.Post("/orders", api.RequireToken, h.CreateOrder)
 
 	app.Add("PUT", "/orders/:id", h.UpdateOrder)
@@ -61,7 +61,7 @@ func main() {
 	app.Route("/eu", api.RegionRoutes)
 	app.Route("/us", api.RegionRoutes)
 
-	// A router reached through a pointer alias — `type P = *Shelf` arrives as
+	// A router reached through a pointer alias - `type P = *Shelf` arrives as
 	// an alias type, which must not fault the field chase.
 	api.NewDepot(app.Group("/depot")).Register()
 

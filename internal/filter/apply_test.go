@@ -237,7 +237,7 @@ func TestEffectFreeSubtreeDrop(t *testing.T) {
 	}
 }
 
-// TestFitToBudget: a flow larger than the readability budget zooms out —
+// TestFitToBudget: a flow larger than the readability budget zooms out -
 // steps beyond the fitting depth collapse and their effects bubble into the
 // surviving ancestors (deduplicated), so what the subtree does stays
 // visible.
@@ -287,7 +287,7 @@ func TestFitToBudget(t *testing.T) {
 }
 
 // TestTerminalDoesNotProtect: a dropped subtree ending in a dynamic terminal
-// stays dropped — unresolved calls show uncertainty, not liveness.
+// stays dropped - unresolved calls show uncertainty, not liveness.
 func TestTerminalDoesNotProtect(t *testing.T) {
 	b := newFlow()
 	logNode := b.add("log.Error", "m/pkg/log")

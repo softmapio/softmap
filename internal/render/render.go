@@ -1,6 +1,6 @@
 // Package render emits a self-contained interactive HTML viewer for one or
 // more flow documents. The page is a single file with no external
-// dependencies — inline CSS/JS, data embedded — so it can live in CI
+// dependencies - inline CSS/JS, data embedded - so it can live in CI
 // artifacts, be committed, or be opened from disk. The JSON schema remains
 // the machine contract; this is the human view of the same data.
 package render
@@ -29,7 +29,7 @@ type Flow struct {
 // WriteHTML renders the viewer page for the given flows. toolName only
 // brands the page chrome; it is injected so the name keeps living in one
 // place (cmd's toolName constant). index is the entity shelf (nil when the
-// scan covered a single flow — the page then opens straight on it).
+// scan covered a single flow - the page then opens straight on it).
 func WriteHTML(w io.Writer, toolName string, flows []Flow, index *entities.Index) error {
 	if len(flows) == 0 {
 		return fmt.Errorf("no flows to render")

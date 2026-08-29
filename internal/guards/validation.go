@@ -24,7 +24,7 @@ func isValidationPkg(pkg string) bool {
 }
 
 // ValidationChecks renders what a validation call enforces, e.g.
-// "phone — required, length(11, 11), digit". Empty when call is not a
+// "phone - required, length(11, 11), digit". Empty when call is not a
 // recognized validation entrypoint.
 func ValidationChecks(call *ssa.Call) string {
 	field, rules := validationOfCall(call)
@@ -34,7 +34,7 @@ func ValidationChecks(call *ssa.Call) string {
 	if field == "" {
 		return strings.Join(rules, ", ")
 	}
-	return field + " — " + strings.Join(rules, ", ")
+	return field + " - " + strings.Join(rules, ", ")
 }
 
 func validationOfCall(call *ssa.Call) (string, []string) {

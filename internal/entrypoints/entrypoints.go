@@ -173,7 +173,7 @@ func Resolve(p *loader.Program, discovered []Entrypoint, id string) (*Entrypoint
 			continue
 		}
 		// A generic function appears once per instantiation, and every
-		// instance displays as its origin — counting them all would report a
+		// instance displays as its origin - counting them all would report a
 		// generic handler as ambiguous with itself.
 		if orig := fn.Origin(); orig != nil && orig != fn {
 			continue

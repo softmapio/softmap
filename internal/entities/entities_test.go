@@ -33,7 +33,7 @@ func TestSQLAccess(t *testing.T) {
 		{"DELETE FROM sessions WHERE id = $1", "deletes", "sessions"},
 		{`SELECT x FROM "quoted"`, "reads", "quoted"},
 		{"WITH t AS (SELECT 1) SELECT * FROM orders", "reads", "orders"},
-		// ORM method names carry no table — no entity signal.
+		// ORM method names carry no table - no entity signal.
 		{"Find", "", ""},
 		{"REFRESH MATERIALIZED VIEW order_stats", "", ""},
 	}
@@ -70,7 +70,7 @@ func TestTopicPrefix(t *testing.T) {
 		"orders.created": "orders",
 		"order_paid":     "order",
 		"payments-done":  "payments",
-		"events":         "", // unsegmented — no evidence
+		"events":         "", // unsegmented - no evidence
 	}
 	for in, want := range tests {
 		if got := topicPrefix(in); got != want {

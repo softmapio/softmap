@@ -1,4 +1,4 @@
-// Package filter is the noise-reduction pipeline — the part that turns a
+// Package filter is the noise-reduction pipeline - the part that turns a
 // raw call graph into a readable flow map. It is config-driven from day one:
 // the built-in defaults ship as an embedded YAML file in exactly the format
 // a user rule file will use, so the rule format is inspectable (softmap
@@ -37,7 +37,7 @@ type ruleFile struct {
 
 // Rule pairs match criteria with an action. Rules apply in file order; the
 // first matching rule decides a node's fate. Effect nodes and unresolved
-// dynamic terminals are immune at the engine level — that immunity is what
+// dynamic terminals are immune at the engine level - that immunity is what
 // makes broad rules like "drop all stdlib" safe to write.
 type Rule struct {
 	ID     string `yaml:"id"`

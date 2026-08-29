@@ -33,7 +33,7 @@ echo "== create pull request flow =="
 EP="$(grep -m1 'CreatePullRequest' "$OUT/entrypoints.txt" | awk '{print $1}' || true)"
 if [ -z "$EP" ]; then
   # Gitea registers routes through its own web.Router wrapper around chi,
-  # which discovery does not (yet) see through — exactly the case the
+  # which discovery does not (yet) see through - exactly the case the
   # --entrypoint escape hatch exists for.
   echo "discovery missed CreatePullRequest; using the func: escape hatch"
   EP="func:code.gitea.io/gitea/routers/api/v1/repo.CreatePullRequest"

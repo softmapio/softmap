@@ -1,6 +1,6 @@
 ---
 name: Map feedback
-about: The map is technically correct but confusing, unreadable, or misleading — this is the feedback we want most
+about: The map is technically correct but confusing, unreadable, or misleading - this is the feedback we want most
 labels: map-feedback
 ---
 

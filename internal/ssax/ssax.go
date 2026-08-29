@@ -473,7 +473,7 @@ func Declared(prog *ssa.Program, fn *ssa.Function) *ssa.Function {
 // globals (return nil, ErrOrderNotFound), methods chained on sentinel
 // globals (errs.OrderNotFound.WithDetails(...)), and constant
 // errors.New / fmt.Errorf messages. Propagated errors from callees are
-// deliberately ignored — they surface on the callee's own node. These are
+// deliberately ignored - they surface on the callee's own node. These are
 // the business branch points a flow reader cares about.
 func SentinelErrors(fn *ssa.Function) []string {
 	if fn == nil || fn.Blocks == nil {

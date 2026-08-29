@@ -1,5 +1,5 @@
-// Package entities derives business entities — the nouns an owner thinks in
-// ("product", "order") — from what flows already touch. Signals, strongest
+// Package entities derives business entities - the nouns an owner thinks in
+// ("product", "order") - from what flows already touch. Signals, strongest
 // first: SQL table names from effects, then URL path segments and Kafka
 // topic prefixes. Fully deterministic; flows with no signal at all land on
 // an honest "other" shelf rather than under a guessed entity.
@@ -22,7 +22,7 @@ type FlowDoc struct {
 }
 
 // Index is the --all companion document (index.json): the flow list plus
-// the entity shelf. Same schema version as the per-flow files — additive.
+// the entity shelf. Same schema version as the per-flow files - additive.
 type Index struct {
 	SchemaVersion string     `json:"schema_version"`
 	Module        string     `json:"module"`
@@ -198,7 +198,7 @@ type entAcc struct {
 
 // mergeSatellites folds prefix satellites into their base entity:
 // order_item (from order_items) merges into order when order exists. The
-// base must already be an entity — a lone order_items table does not invent
+// base must already be an entity - a lone order_items table does not invent
 // an "order" shelf. The shortest existing base wins.
 func mergeSatellites(ents map[string]*entAcc) {
 	keys := make([]string, 0, len(ents))
@@ -284,7 +284,7 @@ var (
 )
 
 // sqlAccess parses the access kind and target table from a statement. ORM
-// calls carry only a method name — no table, so no entity signal; the flow
+// calls carry only a method name - no table, so no entity signal; the flow
 // can still shelf via its URL path.
 func sqlAccess(detail string) (verb, table string) {
 	s := strings.TrimSpace(detail)
@@ -318,10 +318,10 @@ func sqlAccess(detail string) (verb, table string) {
 
 var identRe = regexp.MustCompile(`^\w+$`)
 
-// pathEntity: the first noun-like path segment — /products/{id} → products,
+// pathEntity: the first noun-like path segment - /products/{id} → products,
 // /api/v2/users/{id} → users. Mount prefixes (api, versions) are skipped;
 // infrastructure routes (auth, health, metrics…) give no signal; a leading
-// parameter gives no signal. Deeper segments are never mined — that would
+// parameter gives no signal. Deeper segments are never mined - that would
 // be guessing.
 var pathTransparent = map[string]bool{
 	"api": true, "internal": true, "public": true, "external": true,
@@ -412,7 +412,7 @@ var layerRe = regexp.MustCompile(`^(use ?cases?|uc|handlers?|services?|svc|repos
 
 // flowTitle humanizes the handler name: "(*chiapi.Handler).CreateProduct" →
 // "Create product". A bare verb borrows the receiver or package qualifier
-// ("Run consumer") the same way the viewer does — except the module root
+// ("Run consumer") the same way the viewer does - except the module root
 // package, which qualifies nothing.
 func flowTitle(fn, moduleRoot string) string {
 	name := fn

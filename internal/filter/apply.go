@@ -13,17 +13,17 @@ import (
 // without removing anything (so --debug-tree can show every decision), then
 // applies keep-protection. Pass order:
 //
-//  1. Effect immunity — effect nodes and dynamic terminals were born with
+//  1. Effect immunity - effect nodes and dynamic terminals were born with
 //     Kept=true at extraction; rules never touch them. This engine-level
 //     guarantee is what makes broad rules ("drop all stdlib") safe.
 //  2. Rules in file order; first match marks the node dropped or collapsed.
 //  3. The narrative pass: nodes deeper than narrativeDepth whose subtree
 //     contains no anchor (effect or terminal) are implementation detail, not
-//     flow — marked with the engine:no-effect-subtree pseudo-rule. This is
+//     flow - marked with the engine:no-effect-subtree pseudo-rule. This is
 //     the single biggest lever on real codebases, where an entrypoint can
 //     transitively reach a thousand pure-computation helpers.
 //  4. Keep-protection, bottom-up: a drop-marked node with a surviving
-//     descendant is un-dropped — paths to effects never break. Collapse
+//     descendant is un-dropped - paths to effects never break. Collapse
 //     marks stay: collapsing preserves connectivity by construction.
 func Mark(f *graph.Flow, rules []Rule, p *loader.Program) {
 	f.Root.Kept = true
@@ -237,7 +237,7 @@ func protect(f *graph.Flow) {
 // Prune executes the marks: collapse-marked nodes are inlined into their
 // callers (children re-parented, name recorded in Collapsed), drop-marked
 // nodes are removed with their subtrees. Returns removed-node counts per
-// rule id — the honesty stats for dropped_by_rule.
+// rule id - the honesty stats for dropped_by_rule.
 func Prune(f *graph.Flow, module string) map[string]int {
 	counts := map[string]int{}
 

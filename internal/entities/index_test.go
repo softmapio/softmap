@@ -16,8 +16,8 @@ import (
 
 var update = flag.Bool("update", false, "rewrite the index golden with current output")
 
-// TestIndexGolden builds the entity index from the per-flow goldens — the
-// same documents scan --all writes — and pins index.json byte-for-byte plus
+// TestIndexGolden builds the entity index from the per-flow goldens - the
+// same documents scan --all writes - and pins index.json byte-for-byte plus
 // the milestone content assertions.
 func TestIndexGolden(t *testing.T) {
 	goldenDir, err := filepath.Abs(filepath.Join("..", "..", "testdata", "golden"))

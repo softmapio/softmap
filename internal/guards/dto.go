@@ -48,7 +48,7 @@ func ExtractDTOs(f *graph.Flow) {
 		}
 	}()
 	// gRPC-shaped signature: (ctx, *Req) (*Resp, error). Stdlib types are
-	// transport plumbing (net/http.Request), never the data contract — a
+	// transport plumbing (net/http.Request), never the data contract - a
 	// plain http handler's request comes from the Decode/bind scan below.
 	params := fn.Signature.Params()
 	if params.Len() >= 1 {
@@ -129,7 +129,7 @@ func ExtractDTOs(f *graph.Flow) {
 }
 
 // stdlibType: the named type (after pointer/alias peeling) lives in the
-// standard library — first import-path segment has no dot.
+// standard library - first import-path segment has no dot.
 func stdlibType(t types.Type) bool {
 	t = types.Unalias(t)
 	if ptr, ok := t.(*types.Pointer); ok {

@@ -40,7 +40,7 @@ type Guard struct {
 	PassBlock  *ssa.BasicBlock
 	Exit       ExitError
 	Uses       []string // module calls (same function) feeding the condition
-	// UsesFns: the SSA functions behind Uses — annotate exempts them from
+	// UsesFns: the SSA functions behind Uses - annotate exempts them from
 	// drop rules (guard evidence must never be filtered away).
 	UsesFns []*ssa.Function
 	Mechanical bool
@@ -52,7 +52,7 @@ type Guard struct {
 	// Checks: validation rules this guard enforces, when its condition is
 	// a validation call.
 	Checks string
-	// Branch: set by annotate when BOTH sides of a gate hold work — an
+	// Branch: set by annotate when BOTH sides of a gate hold work - an
 	// exclusive either/or path split.
 	Branch bool
 	// Gate: neither branch exits, but one side holds work the other skips
@@ -94,7 +94,7 @@ func Analyze(p *loader.Program, fn *ssa.Function) []Guard {
 			thenErr, thenRet, thenChain = exitBranch(b.Succs[0], errIdx)
 			elseErr, elseRet, elseChain = exitBranch(b.Succs[1], errIdx)
 		} else {
-			// Void net/http handlers reject by responding and returning —
+			// Void net/http handlers reject by responding and returning -
 			// those branches are exits exactly like `return c.JSON(4xx,...)`.
 			if c, r, ch := voidRespondExit(b.Succs[0]); c != nil {
 				if e, ok := httpResponseExit(c, r); ok {
@@ -114,14 +114,14 @@ func Analyze(p *loader.Program, fn *ssa.Function) []Guard {
 		var terminalExit *ExitError
 		switch {
 		case thenRet == nil && elseRet == nil:
-			// Neither branch exits: possibly a gate — a condition that
+			// Neither branch exits: possibly a gate - a condition that
 			// decides whether a block of work runs at all.
 			if gc, ok := gateCandidate(p, b, ifInstr, seenStmt); ok {
 				out = append(out, gc)
 			}
 			continue
 		case thenRet != nil && elseRet != nil:
-			// Both branches end the function — the tail `if err != nil {
+			// Both branches end the function - the tail `if err != nil {
 			// return c.JSON(500,...) }; return c.JSON(200,...)` idiom. If
 			// exactly one side is an HTTP rejection, it is still a guard:
 			// one outcome fails, the other completes.
@@ -190,12 +190,12 @@ func Analyze(p *loader.Program, fn *ssa.Function) []Guard {
 
 		if terminalExit == nil && tailContinuation(g.Exit, errVal, chain) {
 			// `return c.JSON(4xx, body)` is the framework idiom for a
-			// rejection — a real exit with a status and a message, not
+			// rejection - a real exit with a status and a message, not
 			// continuation.
 			if e2, ok := httpResponseExit(errorSourceCall(origin(errVal)), ret); ok {
 				g.Exit = e2
 			} else {
-				// `if cond { return doA() }; doB(...)` — not a rejection but
+				// `if cond { return doA() }; doB(...)` - not a rejection but
 				// an exclusive either/or: offer it as a gate candidate; the
 				// annotate pass checks whether both sides carry real work.
 				if g.CondFromAST && !errNilCond(ifInstr.Cond) {
@@ -210,7 +210,7 @@ func Analyze(p *loader.Program, fn *ssa.Function) []Guard {
 			}
 		}
 		// A bare "HTTP 400" says nothing when three guards in a row reject
-		// with it — name the call whose failure causes the rejection.
+		// with it - name the call whose failure causes the rejection.
 		if g.Exit.Kind == "message" && strings.HasPrefix(g.Exit.Message, "HTTP ") &&
 			!strings.Contains(g.Exit.Message, "·") && condCall != nil {
 			if info := ssax.Callee(condCall); info != nil && info.Name != "" {
@@ -254,7 +254,7 @@ func gateCandidate(p *loader.Program, b *ssa.BasicBlock, ifInstr *ssa.If, seenSt
 	// Gates insist on a source `if` statement: for/range conditions have
 	// none, and raw SSA condition text is unreadable anyway. A bool-var
 	// condition ("if !whiteListClient") is a phi with no position inside
-	// the statement — anchor through a branch body instead.
+	// the statement - anchor through a branch body instead.
 	text, stmtPos, okAST := p.IfCondition(ifInstr.Cond.Pos())
 	if !okAST {
 		for _, succ := range []*ssa.BasicBlock{b.Succs[0], b.Succs[1]} {
@@ -312,7 +312,7 @@ func rejoins(succ *ssa.BasicBlock) bool {
 	return false
 }
 
-// errNilCond: the condition is E == nil / E != nil for an error-typed E —
+// errNilCond: the condition is E == nil / E != nil for an error-typed E -
 // the mechanical shape, never a business gate.
 func errNilCond(cond ssa.Value) bool {
 	bin, ok := cond.(*ssa.BinOp)
@@ -339,7 +339,7 @@ func errorResultIndex(fn *ssa.Function) int {
 }
 
 // exitBranch reports whether bb reaches, through a straight-line chain
-// (every block exactly one successor — tolerates logging calls and defer's
+// (every block exactly one successor - tolerates logging calls and defer's
 // RunDefers), a Return whose error result is not the nil constant.
 func exitBranch(bb *ssa.BasicBlock, errIdx int) (ssa.Value, *ssa.Return, []*ssa.BasicBlock) {
 	cur := bb
@@ -356,7 +356,7 @@ func exitBranch(bb *ssa.BasicBlock, errIdx int) (ssa.Value, *ssa.Return, []*ssa.
 			}
 			v := last.Results[errIdx]
 			// With defer in the function, `return nil` compiles to a
-			// store/load through a stack cell — chase before deciding.
+			// store/load through a stack cell - chase before deciding.
 			if isNilConst(origin(v)) {
 				return nil, nil, nil
 			}
@@ -372,7 +372,7 @@ func exitBranch(bb *ssa.BasicBlock, errIdx int) (ssa.Value, *ssa.Return, []*ssa.
 
 // tailContinuation reports the "return doWork()" shape: the branch's error
 // comes from a call made inside the branch itself and has no recognizable
-// identity — that is the flow continuing into work, not a rejection.
+// identity - that is the flow continuing into work, not a rejection.
 func tailContinuation(exit ExitError, errVal ssa.Value, chain []*ssa.BasicBlock) bool {
 	if exit.Kind != "unknown" {
 		return false
@@ -544,7 +544,7 @@ func SuccessResponse(fn *ssa.Function) string {
 }
 
 // successText: the code plus its reason phrase where the phrase carries
-// meaning an analyst asks about ("204 — no body comes back").
+// meaning an analyst asks about ("204 - no body comes back").
 func successText(status int) string {
 	switch status {
 	case 201:
@@ -558,10 +558,10 @@ func successText(status int) string {
 	}
 }
 
-// respondSiteArgs recognizes an HTTP respond call — a framework method
+// respondSiteArgs recognizes an HTTP respond call - a framework method
 // (echo/gin) or a hand-rolled module helper (RespondWithJSON, respondError,
 // WriteJSON: name contains respond/json/write and the callee takes an
-// http.ResponseWriter) — and returns the constant status plus the args
+// http.ResponseWriter) - and returns the constant status plus the args
 // after it (payload / message candidates).
 func respondSiteArgs(call *ssa.Call) (int, []ssa.Value, bool) {
 	if call == nil {
@@ -815,7 +815,7 @@ func classify(v ssa.Value, depth int, e *ExitError) {
 			pkg := loader.FuncPackage(callee)
 			if (pkg == "errors" && callee.Name() == "New") || (pkg == "fmt" && callee.Name() == "Errorf") {
 				if msg, ok := ssax.ConstString(cc.Args[0]); ok {
-					// "%w: %w" carries no words of its own — the wrapped
+					// "%w: %w" carries no words of its own - the wrapped
 					// sentinel is the real identity: the card should read
 					// "ErrPrescoringDeclined", not "…: …".
 					if pkg == "fmt" && wordlessFormat(msg) && len(cc.Args) > 1 {
@@ -869,7 +869,7 @@ func wordlessFormat(format string) bool {
 }
 
 // lastSentinelArg finds the last package-level error variable among a
-// wrap's variadic args — by convention the sentinel marker goes last
+// wrap's variadic args - by convention the sentinel marker goes last
 // (fmt.Errorf("%w: %w", err, ErrPrescoringDeclined)).
 func lastSentinelArg(pack ssa.Value) string {
 	name := ""
@@ -891,7 +891,7 @@ func lastSentinelArg(pack ssa.Value) string {
 }
 
 // condUses traces the condition's operands to module-function calls in the
-// same function — the "why is this data fetched" provenance link.
+// same function - the "why is this data fetched" provenance link.
 func condUses(p *loader.Program, cond ssa.Value) ([]string, []*ssa.Function) {
 	var out []string
 	var fns []*ssa.Function
@@ -912,7 +912,7 @@ func condUses(p *loader.Program, cond ssa.Value) ([]string, []*ssa.Function) {
 			}
 			// Interface calls (DI-wired repositories) are the norm in real
 			// services: the method name IS the provenance. Never descend
-			// into an invoke's args — that road leads to ctx plumbing.
+			// into an invoke's args - that road leads to ctx plumbing.
 			if cc.IsInvoke() {
 				if m := cc.Method; m != nil && m.Pkg() != nil && p.PkgInModule(m.Pkg().Path()) {
 					if name := m.Name(); !seen[name] {

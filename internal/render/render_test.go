@@ -30,7 +30,7 @@ func TestWriteHTML(t *testing.T) {
 	}
 	page := buf.String()
 	for _, want := range []string{
-		"<title>softmap — flow maps</title>",
+		"<title>softmap - flow maps</title>",
 		`"schema_version"`,
 		`"http:POST:/x"`,
 		"const FLOWS =",

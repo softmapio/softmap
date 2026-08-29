@@ -81,10 +81,10 @@ func Load(dir string) (*Program, error) {
 	pkgs, err := packages.Load(cfg, "./...")
 	if err != nil && strings.Contains(err.Error(), "inconsistent vendoring") {
 		// The repo's vendor/ is out of sync with go.mod (deps bumped without
-		// `go mod vendor`). Analysis does not need the vendor dir — retry
+		// `go mod vendor`). Analysis does not need the vendor dir - retry
 		// resolving dependencies from the module cache instead of failing.
 		cfg.BuildFlags = append(cfg.BuildFlags, "-mod=mod")
-		vendorWarning = "vendor/ is out of sync with go.mod; analyzed with -mod=mod (module cache) — run 'go mod vendor' in the repo to fix"
+		vendorWarning = "vendor/ is out of sync with go.mod; analyzed with -mod=mod (module cache) - run 'go mod vendor' in the repo to fix"
 		pkgs, err = packages.Load(cfg, "./...")
 	}
 	if err != nil {
@@ -130,7 +130,7 @@ func Load(dir string) (*Program, error) {
 		// Say what the errors cost, not just that they exist: ill-typed
 		// packages get no SSA, and neither does anything importing them.
 		p.Warnings = append(p.Warnings, fmt.Sprintf(
-			"%d of %d packages failed to type-check: their functions AND those of packages importing them are invisible to analysis (entrypoints there cannot be discovered) — fix the compile errors above and rescan",
+			"%d of %d packages failed to type-check: their functions AND those of packages importing them are invisible to analysis (entrypoints there cannot be discovered) - fix the compile errors above and rescan",
 			broken, len(pkgs)))
 		if hint := newerGoHint(strings.Join(p.Warnings, "\n")); hint != "" {
 			p.Warnings = append(p.Warnings, hint)
@@ -270,7 +270,7 @@ func (p *Program) IfCondition(pos token.Pos) (text string, stmtPos token.Pos, ok
 			return "", token.NoPos, false
 		}
 		// Verbatim and complete: analysts read the condition as the
-		// business rule — truncating it hides exactly the part they ask
+		// business rule - truncating it hides exactly the part they ask
 		// about. The card wraps; the panel shows it too.
 		text := strings.Join(strings.Fields(buf.String()), " ")
 		return text, ifStmt.Pos(), true
@@ -308,7 +308,7 @@ func (p *Program) IfConditionOfBody(pos token.Pos) (text string, stmtPos token.P
 			return "", token.NoPos, false
 		}
 		// Verbatim and complete: analysts read the condition as the
-		// business rule — truncating it hides exactly the part they ask
+		// business rule - truncating it hides exactly the part they ask
 		// about. The card wraps; the panel shows it too.
 		text := strings.Join(strings.Fields(buf.String()), " ")
 		return text, ifStmt.Pos(), true
@@ -361,7 +361,7 @@ func newerGoHint(msg string) string {
 		return ""
 	}
 	return fmt.Sprintf(
-		"this softmap binary was built with %s and cannot type-check code that requires go%s.%s — rebuild it with a newer toolchain:\n"+
+		"this softmap binary was built with %s and cannot type-check code that requires go%s.%s - rebuild it with a newer toolchain:\n"+
 			"  GOTOOLCHAIN=go%s.%s.0 go install github.com/softmapio/softmap/cmd/softmap@latest",
 		runtime.Version(), m[1], m[2], m[1], m[2])
 }

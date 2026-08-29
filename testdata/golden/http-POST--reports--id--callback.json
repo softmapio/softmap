@@ -92,7 +92,7 @@
       "async": false,
       "resolution": "static",
       "condition": "err != nil",
-      "checks": "ReportID — required, length(4, 64), digit"
+      "checks": "ReportID - required, length(4, 64), digit"
     },
     {
       "id": "n6",

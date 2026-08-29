@@ -1,4 +1,4 @@
-# softmap — how it works under the hood
+# softmap - how it works under the hood
 
 softmap statically extracts **flow maps** from Go codebases: given an
 entrypoint (an HTTP handler, a Kafka consumer), it walks the downstream call
@@ -65,7 +65,7 @@ Three things happen here that matter later:
 
 - **Test files never load** (`Tests: false`), so they cannot inflate any
   later phase.
-- **Generated/vendored files are classified immediately post-load** — by
+- **Generated/vendored files are classified immediately post-load** - by
   filename pattern (`*_gen.go`, `*.pb.go`), by the stdlib `ast.IsGenerated`
   check for `// Code generated ... DO NOT EDIT.` headers, and by `/vendor/`
   path segments. They **cannot be dropped at load time**: a `.pb.go` file
@@ -105,12 +105,12 @@ fiber's `Route` pass a subrouter into a **callback**, walked outward by
 backwards through its receiver by `fiberPrefix` (including across the Router
 interface, where the receiver is the interface value rather than an
 argument). Majors of one library that differ in argument shape are one
-matcher, keyed on the version in the import path — fiber v2 takes a variadic
+matcher, keyed on the version in the import path - fiber v2 takes a variadic
 handler list whose last element is the endpoint, v3 names the endpoint first
 and takes middleware after it.
 
 Route paths and topics resolve through the same constant-chasing machinery
-as everything else (see 1.5). Discovery is **best effort by design** — the
+as everything else (see 1.5). Discovery is **best effort by design** - the
 `--entrypoint func:<pkg>.<Name>` escape hatch (`Resolve`) accepts any
 function, with suffix matching and an "ambiguous, candidates are:" error.
 
@@ -120,7 +120,7 @@ Entrypoint IDs are stable and human-readable: `http:POST:/orders`,
 brace-delimited form by `normalizeRoutePath`, so an endpoint gets the same id
 whichever router registered it (`:id` and `*` become `{id}` / `{*}`; chi,
 gorilla and net/http already write braces). Only the matchers of colon-syntax
-routers — gin, echo, fiber — may call it: to the brace-syntax routers a
+routers - gin, echo, fiber - may call it: to the brace-syntax routers a
 segment starting with `:` or `*` is an ordinary literal, and rewriting it
 there would rename a real route and could collide it with that router's own
 `{id}` route. `Resolve` normalizes what the user typed too, and tries the raw
@@ -136,7 +136,7 @@ Algorithm choice (kept behind the `Builder` interface so it is swappable):
 - **CHA** (class hierarchy analysis) is nearly free but over-approximates:
   an interface call gets an edge to *every* type implementing the method.
 - **VTA** (variable type analysis) propagates concrete types through a
-  whole-program flow graph and resolves interface calls precisely — at a
+  whole-program flow graph and resolves interface calls precisely - at a
   cost that grows steeply with program size.
 
 `--algo auto` (default) does both, cheaply: build CHA first, compute the
@@ -144,26 +144,26 @@ CHA-reachable cone from the entrypoints **plus the module's `main`/`init`
 functions**, and run VTA restricted to that cone with the CHA graph as its
 initial approximation. The main/init addition is essential and easy to get
 wrong: VTA can only resolve `s.notifier.Notify()` if it *sees the allocation
-site* where the concrete notifier was stored into that field — and that
+site* where the concrete notifier was stored into that field - and that
 happens in constructors called from `main`, not in code reachable from the
 handler. Fallbacks to CHA: cone larger than `MaxVTAFuncs` (20k) or VTA
 exceeding `--vta-timeout` (120s). Every fallback prints a warning that
-interface edges may over-approximate — degradation is never silent.
+interface edges may over-approximate - degradation is never silent.
 
 Even a successful VTA run keeps the CHA graph around (`Result.CHA`) for a
 **per-call-site fallback** during extraction: when VTA resolves an
 interface call to *nothing*, which is the signature of reflection-based
-dependency injection (fx, wire, dig — the allocation happens inside the
+dependency injection (fx, wire, dig - the allocation happens inside the
 container, invisible to type propagation), extraction consults CHA for that
 one site. A unique implementation counts as resolved (`static`), up to 5
 become `static-multi` edges, more stays an honest `dynamic` terminal.
 Without this, a typical handler → UseCase-interface → repository codebase
 loses its entire flow at depth 1.
 
-### 1.4 graph.Extract — the Flow IR (`internal/graph/extract.go`)
+### 1.4 graph.Extract - the Flow IR (`internal/graph/extract.go`)
 
 `Extract` BFS-walks the call graph from the entrypoint and produces the
-**Flow IR** — the single mutable data structure shared by the filter, the
+**Flow IR** - the single mutable data structure shared by the filter, the
 debug tree, and the JSON writer:
 
 ```go
@@ -189,11 +189,11 @@ Decisions made during extraction:
   descend into library internals. This alone kills most raw-graph spaghetti
   before the filter even runs. When the budget pass collapses an
   effect-carrying step, its effects bubble into the surviving ancestor,
-  deduplicated — what a subtree ultimately does stays visible.
+  deduplicated - what a subtree ultimately does stays visible.
 - **Interface calls:** one resolved callee → `static`; several →
   an edge to each implementation, all tagged `static-multi` (downstream
   layers can render the uncertainty); zero → a synthesized `terminal` node
-  tagged `dynamic` — *never silently dropped*. Dynamic terminals are only
+  tagged `dynamic` - *never silently dropped*. Dynamic terminals are only
   created for module-local interfaces and function values; an unresolved
   `rows.Scan` on a dependency interface is boundary plumbing, not
   meaningful uncertainty.
@@ -212,7 +212,7 @@ Decisions made during extraction:
 Shared machinery used by entrypoints (route paths, consumer topics) and
 effects (SQL text, URLs, producer topics). `ConstString` chases an SSA value
 through, in order: constants, conversions, loads of single-store locals,
-package-level vars stored once in `init`, and — one interprocedural level —
+package-level vars stored once in `init`, and - one interprocedural level -
 struct fields with exactly **one store anywhere in the program** (found via
 a memoized program-wide field-store index). That last step is what resolves
 the dominant real-world pattern:
@@ -224,23 +224,23 @@ func (p *Producer) OrderCreated(...) error { return p.w.WriteMessages(...) } // 
 ```
 
 Anything beyond that (env vars, computed strings) degrades **honestly**:
-`"topic": null, "topic_expr": "<hint>"`. The chase is depth-limited (5) —
+`"topic": null, "topic_expr": "<hint>"`. The chase is depth-limited (5) -
 this is deliberately not a general constant propagator.
 
 ### 1.6 effects (`internal/effects`)
 
 Table-driven detectors match the callee's `(package path, receiver or
-interface type, method name)` — identical for static and interface-dispatch
+interface type, method name)` - identical for static and interface-dispatch
 calls, with `/vN` major-version suffixes normalized. Families: database/sql,
 pgx (+pgxpool), sqlx, gorm, xorm; go-redis v8/v9 (package + client receiver
-+ any exported method — more robust than allowlisting ~200 commands);
++ any exported method - more robust than allowlisting ~200 commands);
 net/http client calls; kafka producers (segmentio, sarama sync/async,
-confluent). Effect nodes are born `Kept: true` — rules can never remove
+confluent). Effect nodes are born `Kept: true` - rules can never remove
 them. Effects attach to the absorbing module method in call-site order;
 identical entries (same type+detail+topic) deduplicate per node, so 64
 `xorm.Session.Find` calls bubbling into one ancestor read as one line.
 
-### 1.7 filter (`internal/filter`) — the product
+### 1.7 filter (`internal/filter`) - the product
 
 The defaults ship as an **embedded YAML file**
 (`internal/filter/rules/default.yaml`, printed by `softmap rules
@@ -260,25 +260,25 @@ The pass order in `Mark`/`Prune` is what makes aggressive rules safe:
 1. **Effect immunity** (engine-level, not expressible in YAML): effect
    nodes and dynamic terminals are never touched by rules. This is why a
    blanket "drop all stdlib" rule cannot lose a `database/sql` query.
-2. **Rule pass** marks nodes dropped/collapsed — nothing is removed yet, so
+2. **Rule pass** marks nodes dropped/collapsed - nothing is removed yet, so
    `--debug-tree` can show every decision with its rule id.
 3. **Effect-free-subtree pass** (`engine:no-effect-subtree`): unmarked
    nodes deeper than the narrative depth (2) whose subtree contains no
    effect are implementation detail, not flow. Only *effects* anchor a
-   subtree — dynamic terminals are shown when their context survives but
+   subtree - dynamic terminals are shown when their context survives but
    never rescue ancestors (lesson from Gitea: its whole logging subsystem
    was resurrected by one unresolved writer interface).
 4. **Keep-protection** (bottom-up, cycle-safe): any drop-marked node with a
    surviving descendant is un-dropped. *Paths to effects never break.* One
    pass suffices because "has a base-surviving descendant" is transitive.
 5. **Fit-to-budget** (`engine:beyond-narrative`): if survivors still exceed
-   the ~40-node readability budget, the flow zooms out — find the largest
+   the ~40-node readability budget, the flow zooms out - find the largest
    depth D whose steps (plus all effect nodes) fit, and mark every deeper
    step as collapse. Deep effects splice up to their nearest surviving
    ancestor and deduplicate, so a giant subtree summarizes to "this step
    ultimately does: Insert, Update, Find…". This is the single biggest
    lever on real codebases (Gitea create-pull-request: 1638 raw → 25 kept).
-6. **Prune + splice**: collapse-marked nodes are inlined — children
+6. **Prune + splice**: collapse-marked nodes are inlined - children
    re-parented to the nearest surviving caller, which records the wrapper
    names in `collapsed` (chains accumulate: `A→w1→w2→B` becomes `A→B` with
    `A.collapsed=[w1,w2]`; beyond-narrative collapses skip name recording,
@@ -286,29 +286,29 @@ The pass order in `Mark`/`Prune` is what makes aggressive rules safe:
    removed with their subtrees; per-rule removal counts become
    `stats.dropped_by_rule`.
 
-`--no-filter` skips this stage entirely (effect *detection* still runs — it
+`--no-filter` skips this stage entirely (effect *detection* still runs - it
 is analysis, not filtering).
 
-### 1.8 Guards & outcomes (`internal/guards`) — the "why" layer
+### 1.8 Guards & outcomes (`internal/guards`) - the "why" layer
 
 After filtering, each surviving step's SSA is scanned for **guards**: `If`
 branches where exactly one successor reaches, through a straight-line chain
 (≤5 blocks, tolerating logging and defer's RunDefers), a `Return` carrying a
 non-nil error. Chosen over postdominator analysis because it is small,
 deterministic, and fails safe (a miss, not noise). `&&`/`||` conditions
-lower to several SSA branches — decisions dedupe by the enclosing source
+lower to several SSA branches - decisions dedupe by the enclosing source
 `*ast.IfStmt`, whose condition is printed verbatim (including non-English
 text). A tail `return doWork()` whose error simply *originates* inside the
 branch is continuation, not a rejection, and is skipped.
 
 The classifier (`mechanicalPropagation`) separates two worlds:
 
-- **Mechanical propagation** — condition is `err != nil`/`== nil` on the
+- **Mechanical propagation** - condition is `err != nil`/`== nil` on the
   error of a call in the same function, and the branch returns that error
   or a wrap of it (`%w`/`%v`/`%s` fmt.Errorf, pkg/errors.Wrap*,
   errors.Join). Never a node; the failing call's node gets `fallible: true`.
   When in doubt, classify mechanical.
-- **Semantic guards** — everything else that ends the flow with an error:
+- **Semantic guards** - everything else that ends the flow with an error:
   business conditions, permission gates, checks translating a failure into
   a distinct sentinel. These become `decision` nodes (condition text +
   `uses` provenance: the same-function calls feeding the condition) chained
@@ -317,10 +317,10 @@ The classifier (`mechanicalPropagation`) separates two worlds:
   whose site is dominated by a guard's pass branch move onto that decision,
   so the happy path reads as a spine with rejections branching off.
 
-- **Gates** — an `if` where *neither* branch exits but exactly one side
+- **Gates** - an `if` where *neither* branch exits but exactly one side
   holds visible work (kept calls or absorbed effects): feature flags, cache
   short-circuits, "whitelisted clients skip the debt check". They render as
-  `decision` nodes with `gate: true`, no exit — the gated calls nest under
+  `decision` nodes with `gate: true`, no exit - the gated calls nest under
   the condition and absorbed driver effects made inside the gated region
   move onto the card. Structural requirements keep them quiet: both sides
   must rejoin the flow (loop headers and early returns never qualify),
@@ -332,22 +332,22 @@ Budgets keep the Miro silhouette readable: ≤8 decisions per function
 ~80 total rendered elements filled best-outcome-first (a gate costs one
 card, a guard two), shallow functions first. Error exits claimed by decisions (or belonging to mechanical wraps)
 leave `error_exits`, so nothing displays twice. To recognize
-project-specific validation helpers as guards, extend the classifier — it
+project-specific validation helpers as guards, extend the classifier - it
 is a named, table-tested predicate like the filter heuristics.
 
 ### 1.9 output (`internal/output`)
 
 `FromFlow` converts the (filtered or raw) Flow into the schema-v1 document.
-Everything is deterministic — node ids (`n1…`) follow BFS order over edges
+Everything is deterministic - node ids (`n1…`) follow BFS order over edges
 that were built in deterministic order, `collapsed` lists are sorted, and
-`encoding/json` sorts the stats map — so golden tests compare bytes.
+`encoding/json` sorts the stats map - so golden tests compare bytes.
 `WriteDebugTree` renders the marked-but-unpruned flow as an indented tree
 with `[dropped: rule-id]` annotations: the fastest way to eyeball whether a
 flow reads well and which rule to blame when it does not.
 
-### 1.9a entities (`internal/entities`) — the noun-first index
+### 1.9a entities (`internal/entities`) - the noun-first index
 
-`Build` derives business entities from the emitted flow documents — it runs
+`Build` derives business entities from the emitted flow documents - it runs
 over the output, not the SSA, so it needs no extra analysis pass. Signals
 per flow, strongest first: SQL table names parsed from effect details
 (verb → access kind: creates/reads/updates/deletes), Kafka topics
@@ -355,7 +355,7 @@ per flow, strongest first: SQL table names parsed from effect details
 (mount prefixes `api`/`vN` are transparent; infrastructure routes like
 `auth`, `healthz` give no signal). Keys are normalized to singular
 (`products` → product) and satellite tables fold into an existing base by
-`_`-prefix (`order_items` → order — only when `order` exists; a lone
+`_`-prefix (`order_items` → order - only when `order` exists; a lone
 satellite keeps its shelf). Flows with no signal land in `other`: an entity
 is never guessed. `.softmap.yaml` `entities:` renames shelves (marked
 overridden), `merge:` clusters manually. `scan --all` writes the result as
@@ -366,7 +366,7 @@ the HTML viewer, whose Business mode opens on the entity shelf.
 
 - `testdata/toyshop` is a fixture service exercising every feature; its
   dependencies are **local stub modules** (`testdata/stubs/*`) with the same
-  import paths and signatures as the real libraries, wired via `replace` —
+  import paths and signatures as the real libraries, wired via `replace` -
   `go test` is hermetic and loads in ~1s. If you change what a matcher keys
   on, update the corresponding stub.
 - A framework with registration shapes of its own gets its **own fixture
@@ -382,7 +382,7 @@ the HTML viewer, whose Business mode opens on the entity shelf.
   surfaces) independently of the golden bytes.
 - Every predicate, effect detector, and matcher has table-driven tests.
 - `scripts/bench-gitea.sh` is the real-world benchmark (clones Gitea,
-  asserts the create-pull-request flow keeps 15–40 nodes incl. SQL).
+  asserts the create-pull-request flow keeps 15-40 nodes incl. SQL).
 
 ---
 
@@ -401,7 +401,7 @@ receiver type, method name), pull the route/topic/queue from arguments via
 `ssax.ConstString` / `ssax.SliceStrings`, resolve the handler argument with
 `handlerFunc` (or `ssax.ConcreteMethod` for interface-shaped handlers), and
 return an `Entrypoint`. For poll-loop style consumers (kafka-go, most AMQP
-clients) the *enclosing function* is the entrypoint — see
+clients) the *enclosing function* is the entrypoint - see
 `matchKafkaGoConsumer`. If the router groups routes, compose the prefix with
 `callbackRegistrar` (subrouter passed into a callback) or `fiberPrefix`
 (subrouter returned as a value). Add a stub module under `testdata/stubs/`
@@ -417,7 +417,7 @@ and a `build` func producing `Effect{Type, Detail, ...}`. If the effect has
 an "address" worth extracting (topic, queue name, URL, RPC method), resolve
 it like `internal/effects/kafka.go` does and degrade to a `*_expr` hint
 when dynamic. Currently `Effect.Type` is one of `sql|redis|http|kafka`; a
-new boundary type (e.g. `grpc`, `queue`) is just a new string — the schema
+new boundary type (e.g. `grpc`, `queue`) is just a new string - the schema
 carries it as-is, but bump consumers of the JSON accordingly.
 
 **A new worker system that is both** (e.g. RabbitMQ, NATS, Temporal):
@@ -430,7 +430,7 @@ them as the two independent pieces above.
 - **New heuristic:** add a predicate function in
   `internal/filter/predicates.go`, register it in the `predicates` map, add
   table-test rows in `predicates_test.go` (positive *and* lookalike-negative
-  cases — see how `EmailNotifier.Notify` guards the logger heuristic), then
+  cases - see how `EmailNotifier.Notify` guards the logger heuristic), then
   reference it from `rules/default.yaml`. Rule order matters: put specific
   rules before general ones (`error-wrapper` precedes `trivial-wrapper` so
   the stats attribute drops to the most specific cause).
@@ -469,7 +469,7 @@ Go-specific (needs a per-language equivalent):
 - `internal/graph.Build`: call-graph construction with *some* answer for
   dynamic dispatch. This is the hard part in any language; the
   static/static-multi/dynamic honesty model was designed so weaker
-  resolvers can still emit truthful output — a Python frontend can tag
+  resolvers can still emit truthful output - a Python frontend can tag
   nearly everything `dynamic` or `static-multi` and the rest of the
   pipeline still works.
 - `internal/entrypoints` + `internal/effects` tables for that ecosystem
@@ -479,7 +479,7 @@ Go-specific (needs a per-language equivalent):
 Practical refactor when the time comes: define a `Frontend` interface
 (`Load`, `Discover`, `BuildGraph`, `Extract` returning `*graph.Flow`),
 move the Go implementation behind it, and dispatch on module type. Do not
-attempt a shared IR *below* the Flow level (a cross-language SSA) — that is
+attempt a shared IR *below* the Flow level (a cross-language SSA) - that is
 a research project, not a feature.
 
 ### 2.4 Integrating with an API / running as a service
@@ -488,7 +488,7 @@ The CLI is a thin shell: `cmd/softmap/scan.go` just sequences
 `loader.Load → entrypoints.Discover → graph.Build → graph.Extract →
 filter.Mark/Prune → output.FromFlow`. Everything it uses is in `internal/`,
 so today the integration path is either (a) exec the binary and parse the
-JSON (stable, versioned via `schema_version` — this is the intended
+JSON (stable, versioned via `schema_version` - this is the intended
 contract for CI and other tools), or (b) promote the internal packages to a
 public `pkg/` API once a second consumer exists. For a long-running service
 (e.g. scan-on-webhook), note that a `loader.Program`+call graph is

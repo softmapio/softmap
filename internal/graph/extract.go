@@ -48,15 +48,15 @@ type DecisionInfo struct {
 	Condition string
 	Uses      []string
 	FailWhen  bool // which boolean value of the condition takes the exit
-	// Gate: no branch exits — the condition decides whether a block of
+	// Gate: no branch exits - the condition decides whether a block of
 	// work runs at all ("if !whiteListClient { check debts }"). FailWhen
 	// holds the value that SKIPS the work.
 	Gate bool
-	// Branch: both sides of the gate hold work — an exclusive either/or
+	// Branch: both sides of the gate hold work - an exclusive either/or
 	// ("email lookup or phone lookup"). Child edges carry yes/no labels.
 	Branch bool
 	// Checks: what a validation guard enforces, human-rendered
-	// ("phone — required, length(11, 11), digit").
+	// ("phone - required, length(11, 11), digit").
 	Checks string
 }
 
@@ -186,7 +186,7 @@ type EffectUse struct {
 	Pos   string // call-site position in module code
 	Async bool   // the call happens inside a goroutine
 	// Alt: this effect's site is in a branch mutually exclusive with
-	// another effect on the same node — they never both run.
+	// another effect on the same node - they never both run.
 	Alt bool
 }
 
@@ -208,10 +208,10 @@ type Node struct {
 	In  []*Node
 
 	// Returns renders the function's result types compactly
-	// ("*model.Order, error") — what the reader gets out of this step.
+	// ("*model.Order, error") - what the reader gets out of this step.
 	Returns string
 
-	// ErrorExits are the named error outcomes this function can return —
+	// ErrorExits are the named error outcomes this function can return -
 	// business branch points (guards, permission checks) a reader cares
 	// about alongside effects.
 	ErrorExits []string
@@ -257,7 +257,7 @@ const maxFallbackImpls = 5
 // goroutine spawns.
 //
 // fallback (may be nil, typically the CHA graph) is consulted per call site
-// when cg resolves an interface call to nothing — the signature pattern of
+// when cg resolves an interface call to nothing - the signature pattern of
 // reflection-based dependency injection, where VTA never observes the
 // allocation that flows into an interface field. A unique implementation is
 // then taken as resolved; up to maxFallbackImpls become static-multi edges;

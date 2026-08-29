@@ -49,7 +49,7 @@ func (h *Handler) ReportRoutes(r fiber.Router) {
 }
 
 // Shelf keeps its router in a struct field, assigned once in the
-// constructor — the router does not reach Register through a local.
+// constructor - the router does not reach Register through a local.
 type Shelf struct {
 	router  fiber.Router
 	handler *Handler
